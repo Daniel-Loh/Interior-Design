@@ -35,5 +35,7 @@ app.get("/", (req, res) => {
     res.render("Main");
 })
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server Running @ port ${PORT}"));
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log('Server Running @ port ${port}')}
+);
