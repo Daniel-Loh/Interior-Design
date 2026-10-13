@@ -2,5 +2,8 @@
   "dependencies": {
     "express": "^5.3.0",
     "express-handlebars": "^9.0.2"
+  },
+  "scripts": {
+    "start": "node app.js"
   }
 }
