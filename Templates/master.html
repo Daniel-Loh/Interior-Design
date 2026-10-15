@@ -8,6 +8,9 @@
 <body>
     <header>
         <h1>Hello World!</h1>
+        <nav class="navbar navbar-dark nav-expand-lg navbar-overlay">
+            <a class="navbar-brand" href="/">Interior Design</a>
+        </nav>
         <!-- TODO
         <nav class="navbar nav-expand-lg navbar-overlay">
             <a class="navbar-brand logoText" href="/"><img src="https://imgs.search.brave.com/nK5jAzwn0g_lC5N3onCj_Z8fXk0OM4_ab51og2xC638/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wNDYv/MDI2LzkyMy9zbWFs/bC9ibGFjay1jbGFz/c2ljLXNlZGFuLWNh/ci1pY29uLXBuZy5w/bmc" alt="Black Sedan" class="imgLogo" />Interior Design</a>
@@ -73,9 +76,7 @@
     -->
     </header>
 
-    <div class="container-fluid mt-4">
-        {{{ body }}}
-    </div>
+    {% blockcontent %}{% endblock %}
 
     <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
