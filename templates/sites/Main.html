@@ -1,0 +1,61 @@
+{% extends "master.html" %}
+
+{% block title %}Home | Pending{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">Your renovation journey starts here</p>
+    <h1>Pending an ID?<br>This is the page to be at.</h1>
+    <p class="intro">Find an interior designer who fits your home, your style and the way you want to live.</p>
+    <a class="button" href="#designers">Explore designers</a>
+</section>
+
+<!-- Team section: add a designer search or filter here. -->
+<section class="section" id="designers">
+    <p class="eyebrow">Discover</p>
+    <h2>Meet the designers</h2>
+    <p class="section-intro">Designer profiles will be added here.</p>
+    <div class="placeholder">Designer cards</div>
+</section>
+
+<!-- Team section: display Interior Design Projects posted by designers here. -->
+<section class="section" id="projects">
+    <p class="eyebrow">Real homes, real ideas</p>
+    <h2>Interior Design Projects</h2>
+    <p class="section-intro">Browse projects shared by interior designers for inspiration and ideas for your own home.</p>
+    <div class="project-grid">
+        <article class="project-card">
+            <div class="project-image">Project photo</div>
+            <div class="project-info">
+                <p class="project-type">HDB · 4-room</p>
+                <h3>A calm, light-filled home</h3>
+                <p>Posted by <strong>Designer name</strong></p>
+            </div>
+        </article>
+        <article class="project-card">
+            <div class="project-image">Project photo</div>
+            <div class="project-info">
+                <p class="project-type">Condominium · 3-bedroom</p>
+                <h3>Warm wood and everyday colour</h3>
+                <p>Posted by <strong>Designer name</strong></p>
+            </div>
+        </article>
+        <article class="project-card">
+            <div class="project-image">Project photo</div>
+            <div class="project-info">
+                <p class="project-type">Landed · Terrace</p>
+                <h3>Making room for family</h3>
+                <p>Posted by <strong>Designer name</strong></p>
+            </div>
+        </article>
+    </div>
+</section>
+
+<!-- Team section: add renovation guides or articles here. -->
+<section class="section section-muted" id="about">
+    <p class="eyebrow">Plan with confidence</p>
+    <h2>Helpful renovation guides</h2>
+    <p class="section-intro">Articles and planning resources will be added here.</p>
+    <div class="placeholder">Articles and resources</div>
+</section>
+{% endblock %}

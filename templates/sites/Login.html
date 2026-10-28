@@ -1,0 +1,38 @@
+{% extends "master.html" %}
+
+{% block title %}Sign in | Pending{% endblock %}
+
+{% block content %}
+<section class="login-section">
+    <div class="login-card">
+        <p class="eyebrow">Welcome back</p>
+        <h1>Sign in to Pending</h1>
+        <p class="login-intro">Choose your account type to continue.</p>
+
+        <!-- Account selection is a visual placeholder until authentication is added. -->
+        <form>
+            <fieldset class="account-types">
+                <legend>I’m signing in as a</legend>
+                <label class="account-option">
+                    <input type="radio" name="account_type" value="customer" checked>
+                    <span><strong>Customer</strong><small>Explore designers and save projects</small></span>
+                </label>
+                <label class="account-option">
+                    <input type="radio" name="account_type" value="designer">
+                    <span><strong>Interior Designer</strong><small>Share projects and manage your profile</small></span>
+                </label>
+            </fieldset>
+
+            <label class="login-label" for="email">Email address</label>
+            <input class="login-input" id="email" name="email" type="email" placeholder="you@example.com">
+
+            <label class="login-label" for="password">Password</label>
+            <input class="login-input" id="password" name="password" type="password" placeholder="Enter your password">
+
+            <button class="button login-button" type="button">Sign in</button>
+        </form>
+        <p class="login-note">Login is a page mockup for now. Account sign-in will be added later.</p>
+        <a class="back-link" href="{{ url_for('home') }}">← Back to exploring</a>
+    </div>
+</section>
+{% endblock %}
