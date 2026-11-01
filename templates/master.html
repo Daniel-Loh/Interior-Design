@@ -28,7 +28,7 @@
                         Login
                     </button>
                     <div class="dropdown-menu dropdown-menu-right">
-                        <form class="px-4 py-3" id="loginForm">
+                        <form class="px-4 py-3" id="loginForm" method="POST" action="{{ url_for('login') }}">
                             <div class="form-group">
                                 <label for="email">Email address</label>
                                 <input type="email" class="form-control" id="email" placeholder="email@example.com">
