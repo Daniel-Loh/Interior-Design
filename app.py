@@ -12,6 +12,15 @@ def home():
 def login():
     return render_template("sites/Login.html")
 
+@app.route('/loginCheck', method=["POST"])
+def loginCheck():
+    email = request.form.get("email")
+    password = request.form.get("password")
+    if email == "Testing@email.com" and password == 123456:
+        session['user'] = "Testing"
+
+    return redirect('/')
+
 @app.route('/logout')
 def logout():
     session.pop('user', None)
@@ -27,6 +36,10 @@ def signup():
 
 @app.route('/Projects')
 def projects():
+    return render_template('sites/Main.html')
+
+@app.route('/About')
+def about():
     return render_template('sites/Main.html')
 
 
