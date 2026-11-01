@@ -20,6 +20,11 @@ def login():
     
     return redirect("/")
 
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect("/")
+
 @app.route('/Designers')
 def designers():
     return render_template("sites/Designers.html")
