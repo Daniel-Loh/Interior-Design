@@ -10,6 +10,10 @@ def home():
 def designers():
     return render_template("sites/Designers.html")
 
+@app.route("/SignUp")
+def signup():
+    return render_template("sites/SignUp.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=3000)
