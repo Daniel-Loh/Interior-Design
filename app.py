@@ -1,9 +1,12 @@
-from flask import Flask, render_template
+import os
+from flask import Flask, render_template, session
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_KEY")
 
 @app.route('/')
 def home():
+    session['user'] = "Testing"
     return render_template("sites/Main.html")
 
 @app.route('/Designers')
