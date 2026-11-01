@@ -6,6 +6,12 @@
 </head>
 
 <body>
+    {% macro nav_item(endpoint, text) %}
+        <a class="nav-link {% if request.endpoint == endpoint %}active{% endif %}" 
+        href="{{ url_for(endpoint) }}">
+            {{ text }}
+        </a>
+    {% endmacro %}
     <header>
         <nav class="navbar navbar-dark bg-dark navbar-expand-lg">
             <a class="navbar-brand" href="/">Pending</a>
@@ -14,9 +20,9 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
                 <div class="navbar-nav mr-auto">
-                    <a class="nav-item nav-link active" href="/">Home</a>
-                    <a class="nav-item nav-link" href="#">Articles</a>
-                    <a class="nav-item nav-link" href="/Designers">Designers</a>
+                    {{ nav_item('/', 'Home') }}
+                    {{ nav_item('Articles', 'Articles') }}
+                    {{ nav_item('Designers', 'Designers') }}
                 </div>
                 <div class="nav-item dropdown" id="loginDropDown">
                     <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
