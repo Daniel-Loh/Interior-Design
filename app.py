@@ -25,6 +25,10 @@ def designers():
 def signup():
     return render_template("sites/SignUp.html")
 
+@app.route('/Projects')
+def projects():
+    return render_template('sites/Main.html')
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5001)
