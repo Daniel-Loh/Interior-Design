@@ -1,11 +1,10 @@
 import os
 from flask import Flask, render_template, session
 
-app = Flask(__name__)
-
 print("DEBUG - Available Env Keys:", list(os.environ.keys()))
 print("DEBUG - FLASK_KEY present?", 'FLASK_KEY' in os.environ)
 
+app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_KEY')
 
 @app.route('/')
