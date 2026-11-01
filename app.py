@@ -4,33 +4,12 @@ from flask import Flask, render_template, session, request, redirect
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_KEY')
 
-@app.route('/')
-def home():
-    return render_template("sites/Main.html")
-
-
-@app.route('/login')
-def login():
-    return render_template("sites/Login.html")
-
-
-if __name__ == "__main__":
-    # Port 5000 is already in use on this machine by another app.
-    app.run(debug=True, port=5001)
 def home():    
     return render_template("sites/Main.html")
 
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-
-    if email == "Testing@email.com" and password == "123456":
-        session['user'] = "Testing"
-    #else:
-        # show alert for invalid login
-    
-    return redirect("/")
+    return render_template("sites/Login.html")
 
 @app.route('/logout')
 def logout():
@@ -47,4 +26,4 @@ def signup():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=3000)
+    app.run(debug=True, port=5001)
