@@ -4,10 +4,11 @@ from flask import Flask, render_template, session, request, redirect
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_KEY')
 
+@app.route('/')
 def home():    
     return render_template("sites/Main.html")
 
-@app.route('/login', methods=['POST'])
+@app.route('/login')
 def login():
     return render_template("sites/Login.html")
 
