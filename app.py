@@ -12,7 +12,7 @@ def home():
 def login():
     return render_template("sites/Login.html")
 
-@app.route('/loginCheck', method=["POST"])
+@app.route('/loginCheck', methods=["POST"])
 def loginCheck():
     email = request.form.get("email")
     password = request.form.get("password")
