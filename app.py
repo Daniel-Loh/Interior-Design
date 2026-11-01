@@ -4,7 +4,11 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return render_template("master.html")
+    return render_template("main.html")
+
+@app.route('/Designers')
+def designers():
+    return render_template("Designers.html")
 
 
 if __name__ == "__main__":
