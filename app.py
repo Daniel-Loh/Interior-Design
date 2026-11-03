@@ -17,6 +17,24 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _save_photo(project_id, field_name, photo_type):
+    file = request.files.get(field_name)
+    if not file or file.filename == '':
+        return
+    if not allowed_file(file.filename):
+        flash(f'Invalid file type for {photo_type.lower()} photo. Use JPG, PNG or WEBP.')
+        return
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_FILE_SIZE:
+        flash(f'{photo_type.capitalize()} photo too large. Maximum 5 MB.')
+        return
+    filename = secure_filename(f"{project_id}_{photo_type}_{file.filename}")
+    file.save(os.path.join(UPLOAD_FOLDER, filename))
+    database.add_photo(project_id, f'uploads/{filename}', photo_type)
+
+
 # ── Public routes ─────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -107,7 +125,8 @@ def company_edit():
 def company_preview():
     company = database.get_company()
     projects = database.get_visible_projects()
-    return render_template('sites/company_preview.html', company=company, projects=projects)
+    cover = {p['id']: database.get_photos(p['id'])[:1] for p in projects}
+    return render_template('sites/company_preview.html', company=company, projects=projects, cover=cover)
 
 
 @app.route('/designer/idp/new')
@@ -124,6 +143,8 @@ def idp_create():
         style=request.form.get('style', ''),
         property_type=request.form.get('property_type', '')
     )
+    _save_photo(project_id, 'before_photo', 'BEFORE')
+    _save_photo(project_id, 'after_photo', 'AFTER')
     flash('Project created.')
     return redirect(url_for('idp_edit', project_id=project_id))
 
@@ -142,37 +163,12 @@ def idp_edit(project_id):
             style=request.form.get('style', ''),
             property_type=request.form.get('property_type', '')
         )
+        _save_photo(project_id, 'before_photo', 'BEFORE')
+        _save_photo(project_id, 'after_photo', 'AFTER')
         flash('Project saved.')
         return redirect(url_for('idp_edit', project_id=project_id))
     photos = database.get_photos(project_id)
     return render_template('sites/idp_edit.html', project=project, photos=photos)
-
-
-@app.route('/designer/idp/<int:project_id>/photo', methods=['POST'])
-def idp_upload_photo(project_id):
-    photo_type = request.form.get('photo_type', 'BEFORE')
-    file = request.files.get('photo')
-
-    if not file or file.filename == '':
-        flash('No file selected.')
-        return redirect(url_for('idp_edit', project_id=project_id))
-
-    if not allowed_file(file.filename):
-        flash('Invalid file type. Use JPG, PNG or WEBP.')
-        return redirect(url_for('idp_edit', project_id=project_id))
-
-    file.seek(0, 2)
-    size = file.tell()
-    file.seek(0)
-    if size > MAX_FILE_SIZE:
-        flash('File too large. Maximum 5 MB.')
-        return redirect(url_for('idp_edit', project_id=project_id))
-
-    filename = secure_filename(f"{project_id}_{photo_type}_{file.filename}")
-    file.save(os.path.join(UPLOAD_FOLDER, filename))
-    database.add_photo(project_id, f'uploads/{filename}', photo_type)
-    flash('Photo uploaded.')
-    return redirect(url_for('idp_edit', project_id=project_id))
 
 
 @app.route('/designer/idp/<int:project_id>/photo/<int:photo_id>/delete', methods=['POST'])

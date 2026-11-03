@@ -29,7 +29,12 @@
         <div class="project-grid">
             {% for p in projects %}
             <a class="project-card" href="{{ url_for('idp_view', project_id=p.id) }}">
-                <div class="project-image">Project photo</div>
+                {% set photos = cover.get(p.id, []) %}
+                {% if photos %}
+                    <img class="project-image" src="{{ url_for('static', filename=photos[0].image_url) }}" alt="{{ p.title }}" style="width:100%;height:190px;object-fit:cover;">
+                {% else %}
+                    <div class="project-image">No photo yet</div>
+                {% endif %}
                 <div class="project-info">
                     <p class="project-type">
                         {% for tag in [p.category, p.style, p.property_type] if tag %}
