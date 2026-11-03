@@ -1,0 +1,63 @@
+{% extends "master.html" %}
+{% block title %}Dashboard | Pending{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="dashboard-header">
+        <div>
+            <p class="eyebrow">Interior Designer</p>
+            <h2>My Dashboard</h2>
+        </div>
+        <div class="dashboard-actions">
+            <a class="btn-sm" href="{{ url_for('company_edit') }}">Edit Company Profile</a>
+            <a class="btn-sm btn-dark" href="{{ url_for('company_preview') }}">Preview Company Page</a>
+            <a class="button" href="{{ url_for('idp_new') }}">+ New Project</a>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if not projects %}
+        <div class="placeholder">No projects yet. Click "+ New Project" to get started.</div>
+    {% else %}
+        <div class="idp-list">
+            {% for p in projects %}
+            <div class="idp-item">
+                <div class="idp-item-info">
+                    <span class="idp-title">{{ p.title }}</span>
+                    {% if p.is_featured %}<span class="badge badge-featured">Featured</span>{% endif %}
+                    {% if not p.is_visible %}<span class="badge badge-hidden">Hidden</span>{% endif %}
+                    <span class="idp-tags">
+                        {% for tag in [p.category, p.style, p.property_type] if tag %}
+                            {{ tag }}{% if not loop.last %} · {% endif %}
+                        {% endfor %}
+                    </span>
+                </div>
+                <div class="idp-item-actions">
+                    <form method="post" action="{{ url_for('idp_toggle_feature', project_id=p.id) }}" style="display:inline">
+                        <button type="submit" class="btn-sm">
+                            {{ 'Unfeature' if p.is_featured else 'Feature' }}
+                        </button>
+                    </form>
+                    <form method="post" action="{{ url_for('idp_toggle_hide', project_id=p.id) }}" style="display:inline">
+                        <button type="submit" class="btn-sm">
+                            {{ 'Unhide' if not p.is_visible else 'Hide' }}
+                        </button>
+                    </form>
+                    <a class="btn-sm" href="{{ url_for('idp_edit', project_id=p.id) }}">Edit</a>
+                    {% if p.is_visible %}
+                    <a class="btn-sm" href="{{ url_for('idp_view', project_id=p.id) }}" target="_blank">View</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

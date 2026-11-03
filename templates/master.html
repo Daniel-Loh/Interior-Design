@@ -10,11 +10,18 @@
     <header class="site-header">
         <a class="logo" href="/">pending.</a>
         <nav>
-            <a href="/">Home</a>
-            <a href="#designers">Find a designer</a>
-            <a href="#projects">ID projects</a>
-            <a href="#about">About</a>
-            <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
+            {% if session.get('role') == 'designer' %}
+                <a href="{{ url_for('designer_dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('company_edit') }}">Company Profile</a>
+                <a href="{{ url_for('company_preview') }}">Preview Page</a>
+                <a class="sign-in-link" href="{{ url_for('logout') }}">Sign out</a>
+            {% else %}
+                <a href="/">Home</a>
+                <a href="#designers">Find a designer</a>
+                <a href="#projects">ID projects</a>
+                <a href="#about">About</a>
+                <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
+            {% endif %}
         </nav>
     </header>
 

@@ -1,0 +1,126 @@
+{% extends "master.html" %}
+{% block title %}{{ 'Edit Project' if project else 'New Project' }} | Pending{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <p class="eyebrow">Interior Designer</p>
+    <h2>{{ 'Edit Project' if project else 'New Project' }}</h2>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for msg in messages %}
+                <div class="flash">{{ msg }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Project details form -->
+    <form method="post"
+          action="{{ url_for('idp_edit', project_id=project.id) if project else url_for('idp_create') }}">
+
+        <div class="form-group">
+            <label class="form-label" for="title">Project Title *</label>
+            <input class="form-control" id="title" name="title" type="text" required
+                   value="{{ project.title if project else '' }}"
+                   placeholder="e.g. A calm, light-filled home">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-control" id="description" name="description"
+                      rows="4" placeholder="Describe the project, challenges and outcome">{{ project.description if project else '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label" for="category">Category *</label>
+                <select class="form-control" id="category" name="category" required>
+                    <option value="">— Select —</option>
+                    {% for opt in ['Residential', 'Commercial'] %}
+                        <option value="{{ opt }}" {{ 'selected' if project and project.category == opt }}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="style">Style *</label>
+                <select class="form-control" id="style" name="style" required>
+                    <option value="">— Select —</option>
+                    {% for opt in ['Modern', 'Scandinavian', 'Industrial', 'Minimalist', 'Traditional', 'Contemporary', 'Eclectic'] %}
+                        <option value="{{ opt }}" {{ 'selected' if project and project.style == opt }}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="property_type">Property Type *</label>
+                <select class="form-control" id="property_type" name="property_type" required>
+                    <option value="">— Select —</option>
+                    {% for opt in ['HDB 2-Room', 'HDB 3-Room', 'HDB 4-Room', 'HDB 5-Room', 'Condominium', 'Landed', 'Executive'] %}
+                        <option value="{{ opt }}" {{ 'selected' if project and project.property_type == opt }}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="button" type="submit">{{ 'Save Changes' if project else 'Create Project' }}</button>
+            <a class="btn-sm" href="{{ url_for('designer_dashboard') }}">← Back to Dashboard</a>
+        </div>
+    </form>
+
+    <!-- Photo upload (only shown after project exists) -->
+    {% if project %}
+    <div class="photo-section">
+        <h3>Before &amp; After Photos</h3>
+        <p style="color:#666b61;font-size:13px;">Accepted: JPG, PNG, WEBP · Max 5 MB each</p>
+
+        <div class="photo-columns">
+            <!-- BEFORE -->
+            <div class="photo-column">
+                <h4>Before</h4>
+                <div class="photo-list">
+                    {% for photo in photos if photo.photo_type == 'BEFORE' %}
+                    <div class="photo-item">
+                        <img src="{{ url_for('static', filename=photo.image_url) }}" alt="Before photo">
+                        <form method="post"
+                              action="{{ url_for('idp_delete_photo', project_id=project.id, photo_id=photo.id) }}">
+                            <button type="submit" class="btn-sm">Remove</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                <form method="post" action="{{ url_for('idp_upload_photo', project_id=project.id) }}"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="photo_type" value="BEFORE">
+                    <input class="form-control" type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
+                    <button class="btn-sm" type="submit" style="margin-top:8px;">Upload Before Photo</button>
+                </form>
+            </div>
+
+            <!-- AFTER -->
+            <div class="photo-column">
+                <h4>After</h4>
+                <div class="photo-list">
+                    {% for photo in photos if photo.photo_type == 'AFTER' %}
+                    <div class="photo-item">
+                        <img src="{{ url_for('static', filename=photo.image_url) }}" alt="After photo">
+                        <form method="post"
+                              action="{{ url_for('idp_delete_photo', project_id=project.id, photo_id=photo.id) }}">
+                            <button type="submit" class="btn-sm">Remove</button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                <form method="post" action="{{ url_for('idp_upload_photo', project_id=project.id) }}"
+                      enctype="multipart/form-data">
+                    <input type="hidden" name="photo_type" value="AFTER">
+                    <input class="form-control" type="file" name="photo" accept=".jpg,.jpeg,.png,.webp">
+                    <button class="btn-sm" type="submit" style="margin-top:8px;">Upload After Photo</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
