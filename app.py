@@ -17,7 +17,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ── Public routes ────────────────────────────────────────────────────────────
+# ── Public routes ─────────────────────────────────────────────────────────────
 
 @app.route('/')
 def home():
@@ -35,10 +35,39 @@ def login():
     return render_template('sites/Login.html')
 
 
+@app.route('/loginCheck', methods=['POST'])
+def loginCheck():
+    email = request.form.get('email')
+    password = request.form.get('password')
+    if email == 'Testing@email.com' and password == '123456':
+        session['user'] = 'Testing'
+    return redirect('/')
+
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
+
+
+@app.route('/Designers')
+def designers():
+    return render_template('sites/Designers.html')
+
+
+@app.route('/SignUp')
+def signup():
+    return render_template('sites/SignUp.html')
+
+
+@app.route('/Projects')
+def projects():
+    return render_template('sites/Main.html')
+
+
+@app.route('/About')
+def about():
+    return render_template('sites/Main.html')
 
 
 @app.route('/idp/<int:project_id>')
