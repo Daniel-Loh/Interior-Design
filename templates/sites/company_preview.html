@@ -1,0 +1,52 @@
+{% extends "master.html" %}
+{% block title %}{{ company.name or 'Company' }} | Pending{% endblock %}
+
+{% block content %}
+<!-- Preview banner – not visible to real customers, only when designer previews -->
+<div class="preview-banner">
+    <span>You are previewing your company page as a customer would see it.</span>
+    <a href="{{ url_for('company_edit') }}">← Back to Edit</a>
+</div>
+
+<section class="company-header">
+    <p class="eyebrow">Interior Design Studio</p>
+    <h1>{{ company.name or 'Your Company Name' }}</h1>
+    {% if company.description %}
+        <p class="intro">{{ company.description }}</p>
+    {% endif %}
+    {% if company.contact_info %}
+        <p class="company-contact">{{ company.contact_info }}</p>
+    {% endif %}
+</section>
+
+<section class="section">
+    <p class="eyebrow">Portfolio</p>
+    <h2>Interior Design Projects</h2>
+
+    {% if not projects %}
+        <div class="placeholder">No visible projects yet.</div>
+    {% else %}
+        <div class="project-grid">
+            {% for p in projects %}
+            <a class="project-card" href="{{ url_for('idp_view', project_id=p.id) }}">
+                {% set photos = cover.get(p.id, []) %}
+                {% if photos %}
+                    <img class="project-image" src="{{ url_for('static', filename=photos[0].image_url) }}" alt="{{ p.title }}" style="width:100%;height:190px;object-fit:cover;">
+                {% else %}
+                    <div class="project-image">No photo yet</div>
+                {% endif %}
+                <div class="project-info">
+                    <p class="project-type">
+                        {% for tag in [p.category, p.style, p.property_type] if tag %}
+                            {{ tag }}{% if not loop.last %} · {% endif %}
+                        {% endfor %}
+                    </p>
+                    <h3>{{ p.title }}</h3>
+                    {% if p.is_featured %}<p style="color:#68755d;font-size:11px;font-weight:bold;">★ Featured</p>{% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
