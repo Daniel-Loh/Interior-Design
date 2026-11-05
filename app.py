@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
+from datetime import datetime
 import os
 import database
 
@@ -52,16 +53,6 @@ def login():
         return redirect(url_for('home'))
     return render_template('sites/Login.html')
 
-
-@app.route('/loginCheck', methods=['POST'])
-def loginCheck():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    if email == 'Testing@email.com' and password == '123456':
-        session['user'] = 'Testing'
-    return redirect('/')
-
-
 @app.route('/logout')
 def logout():
     session.clear()
@@ -86,6 +77,24 @@ def projects():
 @app.route('/About')
 def about():
     return render_template('sites/Main.html')
+
+@app.route('/PlatformManagers')
+def platform_managers():
+    return render_template("sites/PlatformManagers.html")
+
+@app.route('/GenerateReport')
+def generate_report():
+    report_types = [
+            "daily report",
+            "weekly report",
+            "monthly report"
+        ]
+    today_date = datetime.today().strftime('%Y-%m-%d')
+    return render_template("sites/GenerateReport.html",report_types=report_types, default_date=today_date)
+
+@app.route('/ExportReport')
+def export_report():
+    return render_template("sites/ExportReport.html")
 
 
 @app.route('/idp/<int:project_id>')
