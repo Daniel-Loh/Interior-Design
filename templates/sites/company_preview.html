@@ -37,7 +37,7 @@
                 {% endif %}
                 <div class="project-info">
                     <p class="project-type">
-                        {% for tag in [p.category, p.style, p.property_type] if tag %}
+                        {% for tag in [p.category, p.style, p.property_type, p.room_count, p.apartment_type] if tag %}
                             {{ tag }}{% if not loop.last %} · {% endif %}
                         {% endfor %}
                     </p>
