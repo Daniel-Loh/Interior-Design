@@ -7,7 +7,7 @@ import database
 app = Flask(__name__)
 app.secret_key = 'dev-secret-key'
 
-UPLOAD_FOLDER = os.path.join('static', 'uploads')
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads', 'projects')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
@@ -33,7 +33,7 @@ def _save_photo(project_id, field_name, photo_type):
         return
     filename = secure_filename(f"{project_id}_{photo_type}_{file.filename}")
     file.save(os.path.join(UPLOAD_FOLDER, filename))
-    database.add_photo(project_id, f'uploads/{filename}', photo_type)
+    database.add_photo(project_id, f'uploads/projects/{filename}', photo_type)
 
 
 # ── Public routes ─────────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ def idp_edit(project_id):
 def idp_delete_photo(project_id, photo_id):
     photo = database.get_photo(photo_id)
     if photo:
-        file_path = os.path.join('static', photo['image_url'])
+        file_path = os.path.join(app.root_path, 'static', photo['image_url'])
         if os.path.exists(file_path):
             os.remove(file_path)
         database.delete_photo(photo_id)
