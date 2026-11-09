@@ -125,6 +125,14 @@ def login():
     return render_template('sites/Login.html')
 
 
+# Backward-compatible endpoint for an older demo login form.
+# Use the same role-based demo session handling as /login instead of
+# maintaining the conflicting hard-coded Testing@email.com credentials.
+@app.route('/loginCheck', methods=['POST'])
+def login_check():
+    return login()
+
+
 @app.route('/logout')
 def logout():
     session.clear()
