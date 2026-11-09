@@ -706,3 +706,209 @@ textarea.form-control {
         align-items: flex-start;
     }
 }
+
+/* ========================================================================
+   Additional styling for the local demonstration features.
+   The original Pending styles above remain the primary design system.
+   ======================================================================== */
+:root {
+    --pending-ink: #293028;
+    --pending-sage: #68755d;
+    --pending-muted: #666b61;
+    --pending-paper: #fffdf8;
+    --pending-line: #dedbd2;
+    --pending-sand: #e9e7dd;
+}
+
+/* Search and tag filters: one continuous row, with horizontal scrolling
+   instead of wrapping when the screen is too narrow. */
+.demo-filter-form {
+    margin: 28px 0 12px;
+    padding: 12px;
+    border: 1px solid var(--pending-line);
+    background: var(--pending-paper);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #b7bcb0 transparent;
+}
+.demo-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-width: max-content;
+}
+.demo-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+.demo-filter-field { flex: 0 0 auto; min-width: 0; }
+.demo-filter-search { width: 168px; }
+.demo-filter-category { width: 103px; }
+.demo-filter-style { width: 116px; }
+.demo-filter-property-type { width: 125px; }
+.demo-filter-room-count { width: 96px; }
+.demo-filter-apartment-type { width: 130px; }
+.demo-filter-field input,
+.demo-filter-field select {
+    display: block;
+    width: 100%;
+    height: 40px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid var(--pending-line);
+    border-radius: 0;
+    background: #fffdf8;
+    color: var(--pending-ink);
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: normal;
+    box-shadow: none;
+}
+.demo-filter-field select { padding-right: 4px; cursor: pointer; }
+.demo-filter-field input::placeholder { color: #777a70; opacity: 1; }
+.demo-filter-field input:hover,
+.demo-filter-field select:hover { border-color: #a9aa9e; }
+.demo-filter-field input:focus,
+.demo-filter-field select:focus,
+.demo-filter-apply:focus-visible,
+.demo-filter-clear:focus-visible {
+    outline: 2px solid var(--pending-sage);
+    outline-offset: 2px;
+}
+.demo-filter-apply,
+.demo-filter-clear {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 40px;
+    padding: 0 14px;
+    border-radius: 0;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+.demo-filter-apply {
+    border: 1px solid var(--pending-ink);
+    background: var(--pending-ink);
+    color: #fffdf8;
+}
+.demo-filter-apply:hover { background: #3f4a3d; border-color: #3f4a3d; }
+.demo-filter-clear {
+    color: var(--pending-sage);
+    background: transparent;
+    border: 1px solid transparent;
+    padding: 0 8px;
+}
+.demo-filter-clear:hover { color: #4e5c45; text-decoration: underline; }
+.demo-results-count,
+.demo-muted { color: var(--pending-muted); font-size: 12px; }
+.demo-results-count { margin: 0 0 20px; }
+
+/* Project cards continue to use the original .project-card/.project-info
+   typography, color palette, and existing square-edged design. */
+.demo-project-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--pending-line);
+    background: var(--pending-paper);
+}
+.demo-card-link { display: block; color: inherit; text-decoration: none; flex: 1; }
+.demo-card-link:hover { color: inherit; text-decoration: none; }
+.demo-card-cover { display: block; width: 100%; height: 190px; object-fit: cover; }
+.demo-cover-placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    background: var(--pending-sand);
+    color: var(--pending-muted);
+    text-align: center;
+    font-size: 13px;
+}
+.demo-cover-placeholder small { font-size: 11px; font-weight: normal; }
+.demo-tags { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.demo-project-card .project-info h3 { margin-top: 14px; }
+.demo-project-card .project-info p { line-height: 1.5; }
+.demo-match { color: var(--pending-sage) !important; font-weight: bold; }
+.demo-favorite-form { padding: 0 18px 18px; margin-top: auto; }
+.demo-fav-btn { width: 100%; padding: 11px 14px; }
+.demo-fav-btn.is-saved { color: var(--pending-sage); border-color: var(--pending-sage); }
+.demo-fav-btn.is-saved:hover { background: var(--pending-sand); }
+.demo-inline-form { margin: 20px 0; }
+.demo-subsection { margin-top: 55px; }
+.demo-top-gap { margin-top: 28px; }
+.demo-detail-photo { display: block; width: 100%; height: auto; max-height: 500px; object-fit: contain; margin-bottom: 14px; }
+
+/* Reports and manager dashboard share original neutral backgrounds/borders. */
+.demo-report-form {
+    background: var(--pending-paper);
+    border: 1px solid var(--pending-line);
+    padding: 24px;
+    margin: 26px 0;
+}
+.demo-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+.demo-filter-grid label {
+    display: block;
+    color: #51564d;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+.demo-filter-grid select,
+.demo-filter-grid input {
+    display: block;
+    width: 100%;
+    min-height: 41px;
+    padding: 10px 12px;
+    border: 1px solid var(--pending-line);
+    border-radius: 0;
+    background: var(--pending-paper);
+    color: var(--pending-ink);
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+}
+.demo-filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.demo-filter-actions .button, .demo-filter-actions .btn-sm { margin-top: 0; }
+.demo-report-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin: 34px 0 12px; }
+.demo-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 14px; margin: 22px 0 30px; }
+.demo-stat { display: flex; flex-direction: column; gap: 8px; padding: 22px; background: var(--pending-paper); border: 1px solid var(--pending-line); }
+.demo-stat span { color: var(--pending-muted); font-size: 12px; }
+.demo-stat strong { color: var(--pending-sage); font-family: Georgia,serif; font-size: 30px; font-weight: normal; }
+.demo-table { width: 100%; max-width: 880px; border-collapse: collapse; background: var(--pending-paper); margin: 14px 0 28px; }
+.demo-table th, .demo-table td { border: 1px solid var(--pending-line); padding: 12px; text-align: left; font-size: 13px; }
+.demo-table th { background: var(--pending-sand); font-weight: bold; }
+.demo-subheading { margin-top: 26px; }
+.demo-manager-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-top: 32px; }
+.demo-manager-card { padding: 26px; background: var(--pending-paper); border: 1px solid var(--pending-line); }
+.demo-manager-card h3 { font-family: Georgia, serif; font-weight: normal; font-size: 23px; }
+.demo-manager-card p { color: var(--pending-muted); line-height: 1.7; }
+.demo-manager-card .button { margin-top: 16px; }
+.demo-flash-wrap { padding: 16px 8% 0; }
+.site-header nav a:hover { color: #4e5c45; }
+.site-header nav a.sign-in-link:hover { color: #fffdf8; }
+.button:hover { color: #fffdf8; text-decoration: none; }
+
+@media (max-width: 900px) {
+    .project-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .demo-filter-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .project-grid, .demo-manager-actions { grid-template-columns: 1fr; }
+    .demo-filter-form { padding: 10px; }
+    .demo-report-form { padding: 18px; }
+}

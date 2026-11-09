@@ -6,14 +6,6 @@
     <p class="eyebrow">Interior Designer</p>
     <h2>Company Profile</h2>
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for msg in messages %}
-                <div class="flash">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     <form method="post" action="{{ url_for('company_edit') }}">
         <div class="form-group">
             <label class="form-label" for="name">Company Name</label>
