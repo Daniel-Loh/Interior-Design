@@ -15,14 +15,6 @@
         </div>
     </div>
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for msg in messages %}
-                <div class="flash">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     {% if not projects %}
         <div class="placeholder">No projects yet. Click "+ New Project" to get started.</div>
     {% else %}
@@ -34,7 +26,7 @@
                     {% if p.is_featured %}<span class="badge badge-featured">Featured</span>{% endif %}
                     {% if not p.is_visible %}<span class="badge badge-hidden">Hidden</span>{% endif %}
                     <span class="idp-tags">
-                        {% for tag in [p.category, p.style, p.property_type] if tag %}
+                        {% for tag in [p.category, p.style, p.property_type, p.room_count, p.apartment_type] if tag %}
                             {{ tag }}{% if not loop.last %} · {% endif %}
                         {% endfor %}
                     </span>

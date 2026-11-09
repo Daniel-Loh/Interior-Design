@@ -1,0 +1,20 @@
+{% extends "master.html" %}
+{% from "sites/_project_card.html" import card %}
+{% block title %}My Favorite Projects | Pending{% endblock %}
+{% block content %}
+<section class="section">
+    <p class="eyebrow">Your collection</p>
+    <h1>Favorite Projects</h1>
+    <p class="section-intro">Saved projects are stored locally for your demo visitor or selected demo login. {{ projects|length }} saved project{{ '' if projects|length==1 else 's' }}.</p>
+    {% if projects %}
+        <div class="project-grid">
+        {% for p in projects %}
+            {{ card(p,covers[p.id],true,request.path) }}
+        {% endfor %}
+        </div>
+    {% else %}
+        <div class="placeholder">You haven't saved any projects yet. Browse projects and click “♡ Save project”.</div>
+    {% endif %}
+    <p class="demo-top-gap"><a class="button" href="{{ url_for('projects') }}#projects">Browse projects</a></p>
+</section>
+{% endblock %}

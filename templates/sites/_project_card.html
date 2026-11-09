@@ -1,0 +1,29 @@
+{% macro card(p, cover, saved, next_url, show_matches=false) %}
+<article class="project-card demo-project-card">
+    <a class="demo-card-link" href="{{ url_for('idp_view', project_id=p.id) }}">
+        {% if cover %}
+            <img class="demo-card-cover" src="{{ url_for('static', filename=cover.image_url) }}" alt="Photo of {{ p.title }}">
+        {% else %}
+            <div class="demo-card-cover demo-cover-placeholder"><span>Interior inspiration</span><small>Demo listing · photo not uploaded</small></div>
+        {% endif %}
+        <div class="project-info">
+            <div class="demo-tags">
+                {% for tag in [p.category,p.style,p.property_type,p.room_count,p.apartment_type] if tag %}
+                    <span class="tag-pill">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            <h3>{{ p.title }}</h3>
+            <p class="demo-muted">{{ p.description|truncate(105) }}</p>
+            {% if show_matches and p.matched_tags %}
+                <p class="demo-match">Matches: {{ p.matched_tags|join(' · ') }}</p>
+            {% endif %}
+        </div>
+    </a>
+    <form class="demo-favorite-form" method="post" action="{{ url_for('toggle_favorite', project_id=p.id) }}">
+        <input type="hidden" name="next" value="{{ next_url }}">
+        <button type="submit" class="btn-sm demo-fav-btn {{ 'is-saved' if saved else '' }}" aria-label="{{ 'Remove from favorites' if saved else 'Save to favorites' }}: {{ p.title }}">
+            {{ '♥ Saved' if saved else '♡ Save project' }}
+        </button>
+    </form>
+</article>
+{% endmacro %}

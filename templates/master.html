@@ -24,6 +24,7 @@
                 <a href="/#projects">ID projects</a>
                 <a href="/#about">About</a>
             {% endif %}
+            <a href="{{ url_for('favorites') }}">♥ Favorites</a>
             {% if not session.get('role') %}
                 <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
             {% else %}
@@ -33,6 +34,11 @@
     </header>
 
     <main>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<div class="demo-flash-wrap">
+            {% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}
+          </div>{% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </main>
 
