@@ -431,3 +431,94 @@ def set_project_tags(project_id, tag_names):
 def get_all_tags():
     with get_db() as conn:
         return [dict(r) for r in conn.execute('SELECT * FROM tags ORDER BY name')]
+
+
+# ─── Service classes (OOP interface over the data layer above) ─────────────
+
+class CompanyService:
+    """Manages the single company profile record."""
+
+    def get(self):                  # implements CompanyProfile methods
+        return get_company()        # getPublicProfile()
+
+    def save(self, name, description, contact_info):
+        return save_company(name, description, contact_info)
+
+
+class ProjectService:
+    """CRUD and state management for interior design projects."""
+
+    def get(self, project_id):
+        return get_project(project_id)
+
+    def get_all(self):
+        return get_all_projects()
+
+    def get_visible(self, filters=None):
+        return get_visible_projects(filters)
+
+    def get_similar(self, tags, excluded_ids=None, limit=4):
+        return get_similar_projects(tags, excluded_ids, limit)
+
+    def get_filter_options(self):
+        return get_filter_options()
+
+    def get_stats(self):
+        return get_project_stats()
+
+    def create(self, title, description, category, style, property_type,
+               room_count='', apartment_type='', actor='demo-designer'):
+        return create_project(title, description, category, style, property_type,
+                              room_count, apartment_type, actor)
+
+    def save(self, project_id, title, description, category, style, property_type,
+             room_count='', apartment_type='', actor='demo-designer'):
+        return save_project(project_id, title, description, category, style,
+                            property_type, room_count, apartment_type, actor)
+
+    def toggle_featured(self, project_id, actor='demo-designer'):
+        return toggle_featured(project_id, actor)
+
+    def toggle_visibility(self, project_id, actor='demo-designer'):
+        return toggle_visibility(project_id, actor)
+
+
+class PhotoService:
+    """Manages before/after photos attached to a project."""
+
+    def get_all(self, project_id):
+        return get_photos(project_id)
+
+    def get(self, photo_id):
+        return get_photo(photo_id)
+
+    def add(self, project_id, image_url, photo_type):
+        return add_photo(project_id, image_url, photo_type)
+
+    def delete(self, photo_id):
+        return delete_photo(photo_id)
+
+
+class UserService:
+    """User account creation, lookup and authentication."""
+
+    def create(self, email, password, role):
+        return create_user(email, password, role)
+
+    def get_by_email(self, email):
+        return get_user_by_email(email)
+
+    def get_by_id(self, user_id):
+        return get_user_by_id(user_id)
+
+    def verify(self, email, password):
+        return verify_user(email, password)
+
+    def get_all(self):
+        return get_all_users()
+
+    def update_role(self, user_id, role):
+        return update_user_role(user_id, role)
+
+    def delete(self, user_id):
+        return delete_user(user_id)

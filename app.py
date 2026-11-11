@@ -23,6 +23,9 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 # The database is created/migrated at startup, including when using `flask run`.
 database.init_db()
+_company_svc = database.CompanyService()
+_project_svc = database.ProjectService()
+_photo_svc   = database.PhotoService()
 
 
 def current_account():
@@ -87,13 +90,13 @@ def _save_photo(project_id, field_name, photo_type):
     except Exception:
         flash(f'Failed to upload {photo_type.lower()} photo. Please try again.')
         return
-    database.add_photo(project_id, f'uploads/projects/{filename}', photo_type)
+    _photo_svc.add(project_id, f'uploads/projects/{filename}', photo_type)
 
 
 def _covers(projects):
     result = {}
     for project in projects:
-        photos = database.get_photos(project['id'])
+        photos = _photo_svc.get_all(project['id'])
         # Prefer the finished design photo for listing cards.
         cover = next((p for p in photos if p['photo_type'] == 'AFTER'), None)
         result[project['id']] = cover or (photos[0] if photos else None)
@@ -102,7 +105,7 @@ def _covers(projects):
 
 def _explore_context():
     filters = {name: request.args.get(name, '').strip() for name in (*database.TAG_FIELDS, 'q')}
-    projects = database.get_visible_projects(filters)
+    projects = _project_svc.get_visible(filters)
     chosen_tags = {name: filters[name] for name in database.TAG_FIELDS if filters[name]}
     similar = database.get_similar_projects(chosen_tags, excluded_ids=[p['id'] for p in projects]) if chosen_tags else []
     account = current_account()
@@ -200,10 +203,10 @@ def toggle_favorite(project_id):
 
 @app.route('/idp/<int:project_id>')
 def idp_view(project_id):
-    project = database.get_project(project_id)
+    project = _project_svc.get(project_id)
     if not project or not project['is_visible']:
         return render_template('sites/404.html'),404
-    photos = database.get_photos(project_id)
+    photos = _photo_svc.get_all(project_id)
     before = [p for p in photos if p['photo_type']=='BEFORE']
     after = [p for p in photos if p['photo_type']=='AFTER']
     similar = database.get_similar_projects(project,excluded_ids=[project_id],limit=4)
@@ -333,27 +336,27 @@ def download_report():
 # ─── Designer project routes (kept compatible with the original demo) ─────
 @app.route('/designer/dashboard')
 def designer_dashboard():
-    return render_template('sites/designer_dashboard.html',projects=database.get_all_projects())
+    return render_template('sites/designer_dashboard.html',projects=_project_svc.get_all())
 
 
 @app.route('/designer/company',methods=['GET','POST'])
 def company_edit():
     if request.method == 'POST':
-        database.save_company(name=request.form.get('name',''),
-                              description=request.form.get('description',''),
-                              contact_info=request.form.get('contact_info',''))
+        _company_svc.save(name=request.form.get('name',''),
+                          description=request.form.get('description',''),
+                          contact_info=request.form.get('contact_info',''))
         flash('Company profile saved.')
         return redirect(url_for('company_edit'))
-    return render_template('sites/company_edit.html',company=database.get_company())
+    return render_template('sites/company_edit.html',company=_company_svc.get())
 
-
+# InteriorDesigner actions are implemented as Flask routes in app.py
 @app.route('/designer/company/preview')
 @designer_only
 def company_preview():
     try:
-        company=database.get_company()
-        projects=database.get_visible_projects()
-        cover={p['id']:database.get_photos(p['id'])[:1] for p in projects}
+        company=_company_svc.get()
+        projects=_project_svc.get_visible()
+        cover={p['id']:_photo_svc.get_all(p['id'])[:1] for p in projects}
     except Exception:
         flash('Could not load company information. Please try again.')
         return redirect(url_for('company_edit'))
@@ -368,7 +371,7 @@ def idp_new():
 
 @app.route('/designer/idp/create',methods=['POST'])
 def idp_create():
-    project_id=database.create_project(
+    project_id=_project_svc.create(
         title=request.form.get('title','Untitled'),description=request.form.get('description',''),
         category=request.form.get('category',''),style=request.form.get('style',''),
         property_type=request.form.get('property_type',''),room_count=request.form.get('room_count',''),
@@ -381,7 +384,7 @@ def idp_create():
 
 @app.route('/designer/idp/<int:project_id>/edit',methods=['GET','POST'])
 def idp_edit(project_id):
-    project=database.get_project(project_id)
+    project=_project_svc.get(project_id)
     if not project:
         return redirect(url_for('designer_dashboard'))
     if not owns_project(project):
@@ -399,52 +402,52 @@ def idp_edit(project_id):
         if not category or not style or not property_type:
             flash('Category, design style and property type are required.')
             return render_template('sites/idp_edit.html', project=draft,
-                photos=database.get_photos(project_id),
+                photos=_photo_svc.get_all(project_id),
                 room_options=database.ROOM_OPTIONS, apartment_options=database.APARTMENT_OPTIONS)
         # A3: DB error handling
         try:
-            database.save_project(project_id=project_id, title=draft['title'],
+            _project_svc.save(project_id=project_id, title=draft['title'],
                 description=draft['description'], category=category, style=style,
                 property_type=property_type, room_count=draft['room_count'],
                 apartment_type=draft['apartment_type'], actor=designer_actor())
         except Exception:
             flash('Could not save the project. Please try again.')
             return render_template('sites/idp_edit.html', project=draft,
-                photos=database.get_photos(project_id),
+                photos=_photo_svc.get_all(project_id),
                 room_options=database.ROOM_OPTIONS, apartment_options=database.APARTMENT_OPTIONS)
         _save_photo(project_id,'before_photo','BEFORE')
         _save_photo(project_id,'after_photo','AFTER')
         flash('Project saved.')
         return redirect(url_for('idp_edit',project_id=project_id))
     return render_template('sites/idp_edit.html',project=project,
-        photos=database.get_photos(project_id),
+        photos=_photo_svc.get_all(project_id),
         room_options=database.ROOM_OPTIONS,apartment_options=database.APARTMENT_OPTIONS)
 
 
 @app.route('/designer/idp/<int:project_id>/photo/<int:photo_id>/delete',methods=['POST'])
 def idp_delete_photo(project_id,photo_id):
-    project=database.get_project(project_id)
+    project=_project_svc.get(project_id)
     if project and not owns_project(project):
         flash('You do not have permission to edit this project.')
         return redirect(url_for('designer_dashboard'))
-    photo=database.get_photo(photo_id)
+    photo=_photo_svc.get(photo_id)
     if photo and photo['project_id']==project_id:
         filename=BASE_DIR/'static'/photo['image_url']
         if filename.is_file():
             filename.unlink()
-        database.delete_photo(photo_id)
+        _photo_svc.delete(photo_id)
         flash('Photo removed.')
     return redirect(url_for('idp_edit',project_id=project_id))
 
 
 @app.route('/designer/idp/<int:project_id>/feature',methods=['POST'])
 def idp_toggle_feature(project_id):
-    project=database.get_project(project_id)
+    project=_project_svc.get(project_id)
     if project and not owns_project(project):
         flash('You do not have permission to edit this project.')
         return redirect(url_for('designer_dashboard'))
     try:
-        new_state=database.toggle_featured(project_id,actor=designer_actor())
+        new_state=_project_svc.toggle_featured(project_id,actor=designer_actor())
         flash('Project featured.' if new_state else 'Project unfeatured.')
     except Exception:
         flash('Could not update featured status. Please try again.')
@@ -453,12 +456,12 @@ def idp_toggle_feature(project_id):
 
 @app.route('/designer/idp/<int:project_id>/hide',methods=['POST'])
 def idp_toggle_hide(project_id):
-    project=database.get_project(project_id)
+    project=_project_svc.get(project_id)
     if project and not owns_project(project):
         flash('You do not have permission to edit this project.')
         return redirect(url_for('designer_dashboard'))
     try:
-        new_state=database.toggle_visibility(project_id,actor=designer_actor())
+        new_state=_project_svc.toggle_visibility(project_id,actor=designer_actor())
         flash('Project is now visible.' if new_state else 'Project hidden.')
     except Exception:
         flash('Could not update visibility. Please try again.')
