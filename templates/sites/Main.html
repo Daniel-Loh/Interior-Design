@@ -1,5 +1,6 @@
 {% extends "master.html" %}
 {% from "sites/_project_card.html" import card %}
+{% from "sites/_designer_card.html" import designer_card %}
 {% block title %}Explore Interior Projects | Pending{% endblock %}
 {% block content %}
 <section class="hero">
@@ -13,6 +14,15 @@
     <h2>Meet the designers</h2>
     <p class="section-intro">Explore design studios and their project portfolios.</p>
     <a class="btn-sm" href="{{ url_for('designers') }}">Designer directory</a>
+    {% if designers %}
+    <div class="project-grid designers-grid">
+        {% for designer in designers %}
+            {{ designer_card(designer, request.full_path) }}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="placeholder">No designers match these filters.</div>
+    {% endif %}
 </section>
 <section class="section" id="projects">
     <p class="eyebrow">Real homes, real ideas</p>

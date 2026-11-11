@@ -3,6 +3,7 @@ import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from random import randint
 
 DB_PATH = Path(__file__).resolve().parent / 'interior_design.db'
 SGT = timezone(timedelta(hours=8))  # Singapore has no daylight saving time
@@ -34,17 +35,22 @@ def get_db():
 def init_db():
     """Create demo tables and safely add columns to an existing local database."""
     with get_db() as conn:
+        # To use if you need to recreate/reset the values in database
+        #reset = True
+        #if reset:
+        #    conn.execute("DROP TABLE IF EXISTS company_profile")
         conn.executescript('''
             CREATE TABLE IF NOT EXISTS company_profile (
                 id INTEGER PRIMARY KEY DEFAULT 1,
-                name TEXT DEFAULT '', description TEXT DEFAULT '', contact_info TEXT DEFAULT ''
+                name TEXT DEFAULT '', description TEXT DEFAULT '', contact_info TEXT DEFAULT '', weights_views INTEGER DEFAULT 0.5, weights_short INTEGER DEFAULT 0.5
             );
             INSERT OR IGNORE INTO company_profile (id) VALUES (1);
             CREATE TABLE IF NOT EXISTS interior_design_project (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL, description TEXT DEFAULT '',
                 is_featured INTEGER DEFAULT 0, is_visible INTEGER DEFAULT 1,
-                category TEXT DEFAULT '', style TEXT DEFAULT '', property_type TEXT DEFAULT ''
+                category TEXT DEFAULT '', style TEXT DEFAULT '', property_type TEXT DEFAULT '',
+                viewership_count INTEGER DEFAULT 0.5, shortlist_count INTEGER DEFAULT 0.5
             );
             CREATE TABLE IF NOT EXISTS project_photo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,9 +82,9 @@ def init_db():
         for column in ('room_count', 'apartment_type'):
             if column not in existing:
                 conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
-        for column in ('created_at', 'updated_at'):
+        for column in ('created_at', 'updated_at', 'viewership_count', 'shortlist_count'):
             if column not in existing:
-                conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
+                conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
         count = conn.execute('SELECT COUNT(*) AS n FROM interior_design_project').fetchone()['n']
         if count == 0:
             _seed_demo_projects(conn)
@@ -87,30 +93,41 @@ def init_db():
 def _seed_demo_projects(conn):
     """Only on an empty database. These are clearly sample listings, not real projects."""
     samples = [
-        ('Warm Scandinavian 4-Room Home', 'Demo project: light oak, soft tones and practical family storage.', 'Residential','Scandinavian','HDB 4-Room','4 room','Standard apartment'),
-        ('Minimalist City Penthouse', 'Demo project: airy spaces with clean lines and warm stone textures.', 'Residential','Minimalist','Condominium','5 room','Penthouse'),
-        ('Modern Duplex Living', 'Demo project: double-height living area and a modern open-plan kitchen.', 'Residential','Modern','Condominium','4 room','Duplex'),
-        ('Calm Studio Apartment', 'Demo project: multi-use furniture for compact, flexible living.', 'Residential','Minimalist','Condominium','3 room','Studio apartment'),
-        ('Industrial Family Home', 'Demo project: textured concrete, steel accents and family-friendly finishes.', 'Residential','Industrial','HDB 5-Room','5 room','Standard apartment'),
-        ('Contemporary Four-Room Flat', 'Demo project: refined neutrals, feature lighting and adaptable storage.', 'Residential','Contemporary','HDB 4-Room','4 room','Standard apartment'),
-        ('Modern Penthouse Retreat', 'Demo project: panoramic views, dark timber and soft contemporary detailing.', 'Residential','Modern','Condominium','5 room','Penthouse'),
-        ('Scandinavian Duplex Hideaway', 'Demo project: bright timber details across two levels.', 'Residential','Scandinavian','Condominium','4 room','Duplex'),
-        ('Traditional Six-Room Residence', 'Demo project: classic finishes and generous entertaining spaces.', 'Residential','Traditional','Landed','6 room','Standard apartment'),
-        ('Eclectic Three-Room Makeover', 'Demo project: cheerful accents and clever compact-space storage.', 'Residential','Eclectic','HDB 3-Room','3 room','Standard apartment'),
+        ('Warm Scandinavian 4-Room Home', 'Demo project: light oak, soft tones and practical family storage.', 'Residential','Scandinavian','HDB 4-Room','4 room','Standard apartment', randint(0,100), randint(0,100)),
+        ('Minimalist City Penthouse', 'Demo project: airy spaces with clean lines and warm stone textures.', 'Residential','Minimalist','Condominium','5 room','Penthouse', randint(0,100), randint(0,100)),
+        ('Modern Duplex Living', 'Demo project: double-height living area and a modern open-plan kitchen.', 'Residential','Modern','Condominium','4 room','Duplex', randint(0,100), randint(0,100)),
+        ('Calm Studio Apartment', 'Demo project: multi-use furniture for compact, flexible living.', 'Residential','Minimalist','Condominium','3 room','Studio apartment', randint(0,100), randint(0,100)),
+        ('Industrial Family Home', 'Demo project: textured concrete, steel accents and family-friendly finishes.', 'Residential','Industrial','HDB 5-Room','5 room','Standard apartment', randint(0,100), randint(0,100)),
+        ('Contemporary Four-Room Flat', 'Demo project: refined neutrals, feature lighting and adaptable storage.', 'Residential','Contemporary','HDB 4-Room','4 room','Standard apartment', randint(0,100), randint(0,100)),
+        ('Modern Penthouse Retreat', 'Demo project: panoramic views, dark timber and soft contemporary detailing.', 'Residential','Modern','Condominium','5 room','Penthouse', randint(0,100), randint(0,100)),
+        ('Scandinavian Duplex Hideaway', 'Demo project: bright timber details across two levels.', 'Residential','Scandinavian','Condominium','4 room','Duplex', randint(0,100), randint(0,100)),
+        ('Traditional Six-Room Residence', 'Demo project: classic finishes and generous entertaining spaces.', 'Residential','Traditional','Landed','6 room','Standard apartment', randint(0,100), randint(0,100)),
+        ('Eclectic Three-Room Makeover', 'Demo project: cheerful accents and clever compact-space storage.', 'Residential','Eclectic','HDB 3-Room','3 room','Standard apartment', randint(0,100), randint(0,100)),
     ]
     date = now_sg()
     conn.executemany('''
         INSERT INTO interior_design_project
-        (title,description,category,style,property_type,room_count,apartment_type,created_at,updated_at,is_featured)
-        VALUES (?,?,?,?,?,?,?,?,?,?)
-    ''', [(title, desc, category, style, prop, rooms, apartment, date, date, 1 if idx < 3 else 0) for
-          idx,(title,desc,category,style,prop,rooms,apartment) in enumerate(samples)])
+        (title,description,category,style,property_type,room_count,apartment_type,created_at,updated_at,viewership_count,shortlist_count,is_featured)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', [(title, desc, category, style, prop, rooms, apartment, date, date, viewership, shortlist, 1 if idx < 3 else 0) for
+          idx,(title,desc,category,style,prop,rooms,apartment, viewership, shortlist) in enumerate(samples)])
 
 
 def get_company():
     with get_db() as conn:
         row = conn.execute('SELECT * FROM company_profile WHERE id=1').fetchone()
         return dict(row) if row else {}
+
+
+def get_all_companies():
+    with get_db() as conn:
+        return [dict(r) for r in conn.execute('SELECT * FROM company_profile ORDER BY id')]
+
+
+def save_weights(views, short):
+    with get_db() as conn:
+        conn.execute('UPDATE company_profile SET weights_views=?, weights_short=? WHERE id=1',
+                     (views, short))
 
 
 def save_company(name, description, contact_info):

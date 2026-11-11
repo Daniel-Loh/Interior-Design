@@ -81,11 +81,12 @@ def _covers(projects):
 
 def _explore_context():
     filters = {name: request.args.get(name, '').strip() for name in (*database.TAG_FIELDS, 'q')}
+    designers = database.get_all_companies()
     projects = database.get_visible_projects(filters)
     chosen_tags = {name: filters[name] for name in database.TAG_FIELDS if filters[name]}
     similar = database.get_similar_projects(chosen_tags, excluded_ids=[p['id'] for p in projects]) if chosen_tags else []
     account = current_account()
-    return dict(projects=projects, similar=similar, filters=filters,
+    return dict(projects=projects, similar=similar, filters=filters, designers=designers,
                 options=database.get_filter_options(),
                 covers=_covers(projects+similar), favorite_ids=database.get_favorite_ids(account),
                 result_count=len(projects))
@@ -141,7 +142,12 @@ def logout():
 
 @app.route('/Designers')
 def designers():
-    return render_template('sites/Designers.html')
+    return redirect(url_for('home')+"#designers")
+
+@app.route('/designers/<int:designer_id>')
+def designer_view(designer_id):
+    return render_template('sites/404.html')
+
 
 
 @app.route('/SignUp')
@@ -312,8 +318,18 @@ def download_report():
 # ─── Designer project routes (kept compatible with the original demo) ─────
 @app.route('/designer/dashboard')
 def designer_dashboard():
-    return render_template('sites/designer_dashboard.html',projects=database.get_all_projects())
+    return render_template('sites/designer_dashboard.html',projects=database.get_all_projects(), company=database.get_company())
 
+@app.route('/designer/EditCounters', methods=['GET', 'POST'])
+def update_weightages():
+    if request.method == 'POST':
+        views = request.form.get('views', type=int) / 100
+        short = request.form.get('short', type=int) / 100
+        database.save_weights(views=views,
+                              short=short)
+        flash('Counters weightage saved.')
+        return redirect(url_for('update_weightages'))
+    return render_template('sites/edit_counters.html', company=database.get_company())
 
 @app.route('/designer/company',methods=['GET','POST'])
 def company_edit():

@@ -1,0 +1,32 @@
+{% macro designer_card(designer, next_url) %}
+<article class="project-card designer-card demo-project-card">
+    <a class="demo-card-link" href="{{ url_for('designer_view', designer_id=designer.id) }}">
+        {% if designer.avatar_url %}
+            <img class="demo-card-cover" src="{{ url_for('static', filename=designer.avatar_url) }}" alt="Photo of {{ designer.name }}">
+        {% else %}
+            <div class="demo-card-cover demo-cover-placeholder designer-placeholder-cover">
+                <span class="avatar-initial">{{ designer.name[0] | upper }}</span>
+                <small>Demo Designer profile</small>
+            </div>
+        {% endif %}
+        <div class="project-info">
+            {% if designer.specialties %}
+                <div class="demo-tags">
+                    {% for tag in designer.specialties %}
+                        <span class="tag-pill">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <h3>{{ designer.name }}</h3>
+            <p class="demo-muted">{{ designer.description | default('Interior design professional', true) | truncate(95) }}</p>
+        </div>
+    </a>
+
+    {% if designer.contact_info %}
+        <div class="designer-contact">
+            <span class="contact-label">Contact:</span> 
+            <a href="mailto:{{ designer.contact_info }}" class="contact-value">{{ designer.contact_info }}</a>
+        </div>
+    {% endif %}
+</article>
+{% endmacro %}
