@@ -275,13 +275,38 @@ def add_photo(project_id,image_url,photo_type):
 
 
 def delete_photo(photo_id):
-    with get_db() as conn:
-        photo = conn.execute('SELECT * FROM project_photo WHERE id=?',(photo_id,)).fetchone()
-        if photo:
-            conn.execute('DELETE FROM project_photo WHERE id=?',(photo_id,))
-            project = conn.execute('SELECT title FROM interior_design_project WHERE id=?',(photo['project_id'],)).fetchone()
-            if project:
-                record_activity(conn,'Removed photo',photo['project_id'],project['title'])
+    conn = get_db()
+    conn.execute('DELETE FROM project_photo WHERE id=?', (photo_id,))
+    conn.commit()
+    conn.close()
+
+
+# ── CUSTOMER FEATURE: FILTER INTERIOR DESIGN PROJECTS ────────
+
+def get_filter_options():
+    """Retrieve available filter options for Customers."""
+
+    conn = get_db()
+
+    options = {}
+
+    for field in ('category', 'style', 'property_type'):
+
+        rows = conn.execute(
+            f"""
+            SELECT DISTINCT {field}
+            FROM interior_design_project
+            WHERE is_visible = 1
+            AND {field} IS NOT NULL
+            AND {field} != ''
+            ORDER BY {field}
+            """
+        ).fetchall()
+
+        options[field] = [row[0] for row in rows]
+
+    conn.close()
+    return options
 
 
 def register_demo_login(account_key,email,role):
@@ -433,13 +458,103 @@ def get_all_tags():
         return [dict(r) for r in conn.execute('SELECT * FROM tags ORDER BY name')]
 
 
+def get_customer_projects(filters=None):
+    """Retrieve visible projects matching Customer filters."""
+    filters = filters or {}
+    query = """
+        SELECT *
+        FROM interior_design_project
+        WHERE is_visible = 1
+    """
+    values = []
+    for field in ('category', 'style', 'property_type'):
+        value = (filters.get(field) or '').strip()
+        if value:
+            query += f" AND {field} = ?"
+            values.append(value)
+    keyword = (filters.get('q') or '').strip()
+    if keyword:
+        query += " AND (title LIKE ? OR description LIKE ?)"
+        values.extend([f"%{keyword}%", f"%{keyword}%"])
+    budget_min = (filters.get('budget_min') or '').strip()
+    budget_max = (filters.get('budget_max') or '').strip()
+    try:
+        minimum = float(budget_min) if budget_min else None
+        maximum = float(budget_max) if budget_max else None
+        if minimum is not None and (minimum < 0 or minimum != minimum):
+            return []
+        if maximum is not None and (maximum < 0 or maximum != maximum):
+            return []
+        if minimum is not None and maximum is not None:
+            if minimum > maximum:
+                return []
+        if minimum is not None:
+            query += " AND budget >= ?"
+            values.append(minimum)
+        if maximum is not None:
+            query += " AND budget <= ?"
+            values.append(maximum)
+    except ValueError:
+        return []
+    query += " ORDER BY is_featured DESC, id DESC"
+    conn = get_db()
+    rows = conn.execute(query, values).fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def save_customer_enquiry(project_id, customer_name, customer_email, message):
+    """Save a Customer's enquiry about an Interior Design Project."""
+    conn = get_db()
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO customer_enquiry
+            (project_id, customer_name, customer_email, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (project_id, customer_name, customer_email, message)
+        )
+        conn.commit()
+        return cursor.lastrowid
+    finally:
+        conn.close()
+
+
+def get_customer_similar_projects(project_id, limit=4):
+    """Find similar visible Interior Design Projects."""
+    current_project = get_project(project_id)
+    if not current_project or not current_project['is_visible']:
+        return []
+    projects = get_visible_projects()
+    similar_projects = []
+    for project in projects:
+        if project['id'] == project_id:
+            continue
+        score = 0
+        if (current_project['category'] and
+                project['category'] == current_project['category']):
+            score += 1
+        if (current_project['style'] and
+                project['style'] == current_project['style']):
+            score += 3
+        if (current_project['property_type'] and
+                project['property_type'] == current_project['property_type']):
+            score += 2
+        if score > 0:
+            project['similarity_score'] = score
+            similar_projects.append(project)
+    similar_projects.sort(key=lambda p: (-p['similarity_score'], -p['is_featured'], -p['id']))
+    return similar_projects[:limit]
+
+
 # ─── Service classes (OOP interface over the data layer above) ─────────────
 
 class CompanyService:
     """Manages the single company profile record."""
 
-    def get(self):                  # implements CompanyProfile methods
-        return get_company()        # getPublicProfile()
+    def get(self):
+        return get_company()
 
     def save(self, name, description, contact_info):
         return save_company(name, description, contact_info)
