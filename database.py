@@ -275,73 +275,39 @@ def add_photo(project_id,image_url,photo_type):
 
 
 def delete_photo(photo_id):
-    with get_db() as conn:
-        photo = conn.execute('SELECT * FROM project_photo WHERE id=?',(photo_id,)).fetchone()
-        if photo:
-            conn.execute('DELETE FROM project_photo WHERE id=?',(photo_id,))
-            project = conn.execute('SELECT title FROM interior_design_project WHERE id=?',(photo['project_id'],)).fetchone()
-            if project:
-                record_activity(conn,'Removed photo',photo['project_id'],project['title'])
+    conn = get_db()
+    conn.execute('DELETE FROM project_photo WHERE id=?', (photo_id,))
+    conn.commit()
+    conn.close()
 
 
-def register_demo_login(account_key,email,role):
-    timestamp = now_sg()
-    with get_db() as conn:
-        conn.execute('''INSERT INTO demo_users (account_key,email,role,created_at,last_login_at,login_count)
-            VALUES (?,?,?,?,?,1)
-            ON CONFLICT(account_key) DO UPDATE SET last_login_at=excluded.last_login_at, login_count=login_count+1''',
-            (account_key,email,role,timestamp,timestamp))
+# ── CUSTOMER FEATURE: FILTER INTERIOR DESIGN PROJECTS ────────
 
+def get_filter_options():
+    """Retrieve available filter options for Customers."""
 
-def get_favorite_ids(account_key):
-    with get_db() as conn:
-        return {row['project_id'] for row in conn.execute('SELECT project_id FROM favorite_project WHERE account_key=?',(account_key,))}
+    conn = get_db()
 
+    options = {}
 
-def toggle_favorite(account_key,project_id):
-    """Only visible projects may be favorited; returns True if saved, False if removed."""
-    with get_db() as conn:
-        project = conn.execute('SELECT is_visible FROM interior_design_project WHERE id=?',(project_id,)).fetchone()
-        if not project or not project['is_visible']:
-            raise ValueError('Project not available')
-        saved = conn.execute('SELECT 1 FROM favorite_project WHERE account_key=? AND project_id=?',(account_key,project_id)).fetchone()
-        if saved:
-            conn.execute('DELETE FROM favorite_project WHERE account_key=? AND project_id=?',(account_key,project_id))
-            return False
-        conn.execute('INSERT INTO favorite_project (account_key,project_id,saved_at) VALUES (?,?,?)',
-                     (account_key,project_id,now_sg()))
-        return True
+    for field in ('category', 'style', 'property_type'):
 
+        rows = conn.execute(
+            f"""
+            SELECT DISTINCT {field}
+            FROM interior_design_project
+            WHERE is_visible = 1
+            AND {field} IS NOT NULL
+            AND {field} != ''
+            ORDER BY {field}
+            """
+        ).fetchall()
 
-def get_favorite_projects(account_key):
-    with get_db() as conn:
-        return [dict(r) for r in conn.execute('''SELECT p.* FROM interior_design_project p
-            JOIN favorite_project f ON f.project_id=p.id
-            WHERE f.account_key=? AND p.is_visible=1 ORDER BY f.saved_at DESC,p.id DESC''',(account_key,))]
+        options[field] = [row[0] for row in rows]
 
-
-def get_project_stats():
-    with get_db() as conn:
-        row = conn.execute('''SELECT COUNT(*) total, COALESCE(SUM(is_visible),0) visible,
-            COALESCE(SUM(1-is_visible),0) hidden,COALESCE(SUM(is_featured),0) featured
-            FROM interior_design_project''').fetchone()
-        photos = conn.execute('SELECT COUNT(*) photos FROM project_photo').fetchone()['photos']
-        favorites = conn.execute('SELECT COUNT(*) n FROM favorite_project').fetchone()['n']
-        breakdown = {}
-        for field in TAG_FIELDS:
-            breakdown[field] = [{'label': r['value'] or 'Unspecified', 'count': r['amount']}
-                  for r in conn.execute(f'''SELECT {field} AS value,COUNT(*) AS amount
-                      FROM interior_design_project GROUP BY {field} ORDER BY amount DESC,value''')]
-        return {**dict(row), 'photos':photos,'favorites':favorites,'breakdown':breakdown}
-
-
-def get_user_stats(start, end):
-    with get_db() as conn:
-        total = conn.execute('SELECT COUNT(*) FROM demo_users').fetchone()[0]
-        recent = conn.execute('SELECT COUNT(*) FROM demo_users WHERE created_at>=? AND created_at<?',(start,end)).fetchone()[0]
-        roles = {r['role']: r['n'] for r in conn.execute('SELECT role,COUNT(*) AS n FROM demo_users GROUP BY role')}
-        return {'total':total,'new_in_period':recent,'roles':{role:roles.get(role,0) for role in ('customer','designer','platform_manager')}}
-
+    conn.close()
+    
+     return options
 
 def get_designer_activity(start,end):
     with get_db() as conn:
@@ -431,3 +397,151 @@ def set_project_tags(project_id, tag_names):
 def get_all_tags():
     with get_db() as conn:
         return [dict(r) for r in conn.execute('SELECT * FROM tags ORDER BY name')]
+      
+
+def get_customer_projects(filters=None):
+    """Retrieve visible projects matching Customer filters."""
+
+    filters = filters or {}
+
+    query = """
+        SELECT *
+        FROM interior_design_project
+        WHERE is_visible = 1
+    """
+
+    values = []
+
+    # Filter by category, style and property type
+    for field in ('category', 'style', 'property_type'):
+
+        value = (filters.get(field) or '').strip()
+
+        if value:
+            query += f" AND {field} = ?"
+            values.append(value)
+
+    # Search project name or description
+    keyword = (filters.get('q') or '').strip()
+
+    if keyword:
+        query += " AND (title LIKE ? OR description LIKE ?)"
+        values.extend([f"%{keyword}%", f"%{keyword}%"])
+
+    # Filter by renovation budget
+    budget_min = (filters.get('budget_min') or '').strip()
+    budget_max = (filters.get('budget_max') or '').strip()
+
+    try:
+        minimum = float(budget_min) if budget_min else None
+        maximum = float(budget_max) if budget_max else None
+
+        if minimum is not None and (minimum < 0 or minimum != minimum):
+            return []
+
+        if maximum is not None and (maximum < 0 or maximum != maximum):
+            return []
+
+        if minimum is not None and maximum is not None:
+            if minimum > maximum:
+                return []
+
+        if minimum is not None:
+            query += " AND budget >= ?"
+            values.append(minimum)
+
+        if maximum is not None:
+            query += " AND budget <= ?"
+            values.append(maximum)
+
+    except ValueError:
+        return []
+
+    # Display featured projects first
+    query += " ORDER BY is_featured DESC, id DESC"
+
+    conn = get_db()
+
+    rows = conn.execute(query, values).fetchall()
+
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+# ── CUSTOMER FEATURE US-C-03: SAVE CUSTOMER ENQUIRY ──
+
+def save_customer_enquiry(project_id, customer_name, customer_email, message):
+    """Save a Customer's enquiry about an Interior Design Project."""
+
+    conn = get_db()
+
+    try:
+        cursor = conn.execute(
+            """
+            INSERT INTO customer_enquiry
+            (project_id, customer_name, customer_email, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (project_id, customer_name, customer_email, message)
+        )
+
+        conn.commit()
+        return cursor.lastrowid
+
+    finally:
+        conn.close()
+
+
+# ── CUSTOMER FEATURE US-C-04: SIMILAR PROJECTS ──
+
+def get_customer_similar_projects(project_id, limit=4):
+    """Find similar visible Interior Design Projects."""
+
+    # Retrieve the current project
+    current_project = get_project(project_id)
+
+    if not current_project or not current_project['is_visible']:
+        return []
+
+    # Retrieve all publicly visible projects
+    projects = get_visible_projects()
+
+    similar_projects = []
+
+    for project in projects:
+
+        # Do not recommend the currently viewed project
+        if project['id'] == project_id:
+            continue
+
+        # Calculate similarity score
+        score = 0
+
+        if (current_project['category'] and
+                project['category'] == current_project['category']):
+            score += 1
+
+        if (current_project['style'] and
+                project['style'] == current_project['style']):
+            score += 3
+
+        if (current_project['property_type'] and
+                project['property_type'] == current_project['property_type']):
+            score += 2
+
+        # Only include projects with matching attributes
+        if score > 0:
+            project['similarity_score'] = score
+            similar_projects.append(project)
+
+    # Display the most relevant projects first
+    similar_projects.sort(
+        key=lambda p: (
+            -p['similarity_score'],
+            -p['is_featured'],
+            -p['id']
+        )
+    )
+
+    return similar_projects[:limit]
