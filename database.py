@@ -109,6 +109,8 @@ def init_db():
         for column in ('created_at', 'updated_at'):
             if column not in existing:
                 conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
+        if 'account_key' not in existing:
+            conn.execute("ALTER TABLE interior_design_project ADD COLUMN account_key TEXT NOT NULL DEFAULT ''")
         count = conn.execute('SELECT COUNT(*) AS n FROM interior_design_project').fetchone()['n']
         if count == 0:
             _seed_demo_projects(conn)
@@ -214,9 +216,9 @@ def create_project(title, description, category, style, property_type, room_coun
     with get_db() as conn:
         timestamp = now_sg()
         cursor = conn.execute('''INSERT INTO interior_design_project
-            (title,description,category,style,property_type,room_count,apartment_type,created_at,updated_at)
-            VALUES (?,?,?,?,?,?,?,?,?)''',
-            (title,description,category,style,property_type,room_count,apartment_type,timestamp,timestamp))
+            (title,description,category,style,property_type,room_count,apartment_type,created_at,updated_at,account_key)
+            VALUES (?,?,?,?,?,?,?,?,?,?)''',
+            (title,description,category,style,property_type,room_count,apartment_type,timestamp,timestamp,actor))
         project_id = cursor.lastrowid
         record_activity(conn, 'Created project',project_id,title,actor)
         return project_id
@@ -239,6 +241,7 @@ def toggle_featured(project_id,actor='demo-designer'):
         project = conn.execute('SELECT title,is_featured FROM interior_design_project WHERE id=?',(project_id,)).fetchone()
         if project:
             record_activity(conn,'Featured project' if project['is_featured'] else 'Unfeatured project',project_id,project['title'],actor)
+        return project['is_featured'] if project else None
 
 
 def toggle_visibility(project_id,actor='demo-designer'):
@@ -248,6 +251,7 @@ def toggle_visibility(project_id,actor='demo-designer'):
         project = conn.execute('SELECT title,is_visible FROM interior_design_project WHERE id=?',(project_id,)).fetchone()
         if project:
             record_activity(conn,'Unhid project' if project['is_visible'] else 'Hid project',project_id,project['title'],actor)
+        return project['is_visible'] if project else None
 
 
 def get_photos(project_id):
