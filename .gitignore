@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+
+# Flask session / instance
+instance/
+flask_session/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Requirements.txt
+requirements.txt

@@ -21,6 +21,10 @@
                     <input type="radio" name="account_type" value="designer">
                     <span><strong>Interior Designer</strong><small>Share projects and manage your profile</small></span>
                 </label>
+                <label class="account-option">
+                    <input type="radio" name="account_type" value="platform_manager">
+                    <span><strong>Platform Manager</strong><small>Strategize, Develop, and Scale your organisation</small></span>
+                </label>
             </fieldset>
 
             <label class="login-label" for="email">Email address</label>
@@ -31,7 +35,7 @@
 
             <button class="button login-button" type="submit">Sign in</button>
         </form>
-        <p class="login-note">Login is a page mockup for now. Account sign-in will be added later.</p>
+        <p class="login-note">Demo only: picking a role registers a local demo identity. Passwords are not checked; please do not use real credentials.</p>
         <a class="back-link" href="{{ url_for('home') }}">← Back to exploring</a>
     </div>
 </section>

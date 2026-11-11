@@ -6,14 +6,6 @@
     <p class="eyebrow">Interior Designer</p>
     <h2>{{ 'Edit Project' if project else 'New Project' }}</h2>
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for msg in messages %}
-                <div class="flash">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
     <!-- Project details + photos in one form -->
     <form method="post"
           action="{{ url_for('idp_edit', project_id=project.id) if project else url_for('idp_create') }}"
@@ -59,6 +51,27 @@
                     <option value="">— Select —</option>
                     {% for opt in ['HDB 2-Room', 'HDB 3-Room', 'HDB 4-Room', 'HDB 5-Room', 'Condominium', 'Landed', 'Executive'] %}
                         <option value="{{ opt }}" {{ 'selected' if project and project.property_type == opt }}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row demo-extra-tags">
+            <div class="form-group">
+                <label class="form-label" for="room_count">Number of Rooms</label>
+                <select class="form-control" id="room_count" name="room_count">
+                    <option value="">— Select —</option>
+                    {% for opt in room_options %}
+                        <option value="{{ opt }}" {{ 'selected' if project and project.room_count == opt }}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="apartment_type">Apartment Type</label>
+                <select class="form-control" id="apartment_type" name="apartment_type">
+                    <option value="">— Select —</option>
+                    {% for opt in apartment_options %}
+                        <option value="{{ opt }}" {{ 'selected' if project and project.apartment_type == opt }}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>

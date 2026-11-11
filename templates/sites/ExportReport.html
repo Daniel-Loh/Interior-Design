@@ -1,0 +1,32 @@
+{% extends "master.html" %}
+{% block title %}Export Report | Pending{% endblock %}
+{% block content %}
+<section class="section">
+    <p class="eyebrow">Platform management</p>
+    <h1>Export a Report</h1>
+    <p class="section-intro">Download local demo statistics as a CSV file. CSV opens in Microsoft Excel or Google Sheets.</p>
+    <form class="demo-report-form" action="{{ url_for('download_report') }}" method="get">
+        <div class="demo-filter-grid">
+            <div><label for="reportType">Report period</label>
+                <select name="reportType" id="reportType">
+                    {% for type in report_types %}<option value="{{ type }}" {% if config.period==type %}selected{% endif %}>{{ type.title() }}</option>{% endfor %}
+                </select>
+            </div>
+            <div><label for="startDate">Date within reporting period</label>
+                <input id="startDate" name="startDate" type="date" value="{{ default_date }}" required>
+            </div>
+            <div><label for="reportSection">Data to export</label>
+                <select name="reportSection" id="reportSection">
+                    {% for value,label in [('all','All statistics'),('projects','Project statistics'),('users','User counts'),('activity','Designer activity')] %}
+                        <option value="{{ value }}" {% if config.section==value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="demo-filter-actions">
+            <button type="submit" class="button">Download CSV Report</button>
+            <a href="{{ url_for('generate_report') }}" class="btn-sm">Preview a report</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "master.html" %}
+{% block title %}Generate Report | Pending{% endblock %}
+{% block content %}
+<section class="section">
+    <p class="eyebrow">Platform management</p>
+    <h1>Generate a Report</h1>
+    <p class="section-intro">See the current local project and demo-user totals, plus designer activities during a selected day, week or month. No online reporting service is used.</p>
+    <form class="demo-report-form" method="get" action="{{ url_for('generate_report') }}">
+        <input type="hidden" name="generate" value="1">
+        <div class="demo-filter-grid">
+            <div>
+                <label for="reportType">Report period</label>
+                <select name="reportType" id="reportType">
+                    {% for type in report_types %}
+                        <option value="{{ type }}" {% if config.period==type %}selected{% endif %}>{{ type.title() }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="startDate">Date within reporting period</label>
+                <input type="date" id="startDate" name="startDate" value="{{ default_date }}" required>
+            </div>
+            <div>
+                <label for="reportSection">Report content</label>
+                <select name="reportSection" id="reportSection">
+                    {% for value,label in [('all','All statistics'),('projects','Project statistics'),('users','User counts'),('activity','Designer activity')] %}
+                        <option value="{{ value }}" {% if config.section==value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="demo-filter-actions">
+            <button class="button" type="submit">Generate Report</button>
+            <a class="btn-sm" href="{{ url_for('export_report') }}">Export options</a>
+        </div>
+    </form>
+
+    {% if report %}
+        <div class="demo-report-header">
+            <div><h2>Report Preview</h2><p class="demo-muted">Period: {{ config.start_date }} to {{ config.end_date }} (Singapore time)</p></div>
+            <a class="button" href="{{ url_for('download_report',reportType=config.period,startDate=config.chosen,reportSection=config.section) }}">Download CSV</a>
+        </div>
+        <p class="demo-muted">Project and user counts are current all-time totals. New-user counts and designer activity use the date range above.</p>
+        {% if config.section in ('all','projects') %}
+            <h3>Project Statistics</h3>
+            <div class="demo-stats-grid">
+                {% for label,amount in [('Total projects',report.projects.total),('Visible projects',report.projects.visible),('Hidden projects',report.projects.hidden),('Featured projects',report.projects.featured),('Project photos',report.projects.photos),('Favorites saved',report.projects.favorites)] %}
+                    <div class="demo-stat"><span>{{ label }}</span><strong>{{ amount }}</strong></div>
+                {% endfor %}
+            </div>
+            <h3>Project Tag Breakdown</h3>
+            {% for field,label in [('category','Category'),('style','Style'),('property_type','Property type'),('room_count','Number of rooms'),('apartment_type','Apartment type')] %}
+                <h4 class="demo-subheading">{{ label }}</h4>
+                <table class="demo-table"><thead><tr><th>Tag</th><th>Projects</th></tr></thead><tbody>
+                    {% for item in report.projects.breakdown[field] %}
+                        <tr><td>{{ item.label }}</td><td>{{ item.count }}</td></tr>
+                    {% else %}<tr><td colspan="2">No projects recorded.</td></tr>{% endfor %}
+                </tbody></table>
+            {% endfor %}
+        {% endif %}
+        {% if config.section in ('all','users') %}
+            <h3>Demo User Counts</h3>
+            <div class="demo-stats-grid">
+                <div class="demo-stat"><span>Total demo users</span><strong>{{ report.users.total }}</strong></div>
+                <div class="demo-stat"><span>New demo users this period</span><strong>{{ report.users.new_in_period }}</strong></div>
+                {% for role,count in report.users.roles.items() %}
+                    <div class="demo-stat"><span>{{ role.replace('_',' ').title() }}</span><strong>{{ count }}</strong></div>
+                {% endfor %}
+            </div>
+            <p class="demo-muted">Counts reflect demo identities that selected a role on the login page; there is no real registration or password verification.</p>
+        {% endif %}
+        {% if config.section in ('all','activity') %}
+            <h3>Designer Activity</h3>
+            <div class="demo-stats-grid">
+                <div class="demo-stat"><span>Actions this period</span><strong>{{ report.activity.total }}</strong></div>
+                {% for action,count in report.activity.counts.items() %}
+                    <div class="demo-stat"><span>{{ action }}</span><strong>{{ count }}</strong></div>
+                {% endfor %}
+            </div>
+            {% if report.activity.actors %}
+                <h4 class="demo-subheading">Actions by demo designer identity</h4>
+                <table class="demo-table"><thead><tr><th>Demo identity</th><th>Actions</th></tr></thead><tbody>
+                    {% for actor,count in report.activity.actors.items() %}<tr><td>{{ actor }}</td><td>{{ count }}</td></tr>{% endfor %}
+                </tbody></table>
+            {% endif %}
+            <table class="demo-table"><thead><tr><th>Singapore time</th><th>Demo identity</th><th>Action</th><th>Project</th></tr></thead><tbody>
+                {% for event in report.activity.events %}
+                    <tr><td>{{ event.occurred_at }}</td><td>{{ event.account_key }}</td><td>{{ event.event_type }}</td><td>{{ event.project_title }}</td></tr>
+                {% else %}<tr><td colspan="4">No designer actions recorded in this period. Create or edit a project to generate activity.</td></tr>{% endfor %}
+            </tbody></table>
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

@@ -15,25 +15,30 @@
                 <a href="{{ url_for('designer_dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('company_edit') }}">Company Profile</a>
                 <a href="{{ url_for('company_preview') }}">Preview Page</a>
-                <a class="sign-in-link" href="{{ url_for('logout') }}">Sign out</a>
+            {% elif session.get('role') == 'platform_manager' %}
+                <a href="{{ url_for('platform_managers') }}">Manage Platform</a>
+                <a href="{{ url_for('generate_report') }}">Generate Report</a>
+                <a href="{{ url_for('export_report') }}">Export Report</a>
             {% else %}
                 <a href="/#designers">Find a designer</a>
                 <a href="/#projects">ID projects</a>
                 <a href="/#about">About</a>
-                
-                <!-- Customer Navigation -->
-                
-
-                {% if session.get('role') == 'customer' %}
-                    <a class="sign-in-link" href="{{ url_for('logout') }}">Sign out</a>
-                {% else %}
-                    <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
-                {% endif %}
+            {% endif %}
+            <a href="{{ url_for('favorites') }}">♥ Favorites</a>
+            {% if not session.get('role') %}
+                <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
+            {% else %}
+                <a class="sign-in-link" href="{{ url_for('logout') }}">{% if session.get('name') %}{{ session.get('name') }}{% else %}Testing{% endif %}</a>
             {% endif %}
         </nav>
     </header>
 
     <main>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}<div class="demo-flash-wrap">
+            {% for msg in messages %}<div class="flash">{{ msg }}</div>{% endfor %}
+          </div>{% endif %}
+        {% endwith %}
         {% block content %}{% endblock %}
     </main>
 

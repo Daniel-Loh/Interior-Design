@@ -1,10 +1,9 @@
 {% extends "master.html" %}
+{% from "sites/_project_card.html" import card %}
 {% block title %}{{ project.title }} | Pending{% endblock %}
-
 {% block content %}
 <div class="idp-view">
-    <a class="back-link" href="/">← Back to explore</a>
-
+    <a class="back-link" href="{{ url_for('projects') }}#projects">← Back to explore</a>
     <p class="eyebrow" style="margin-top:24px;">Interior Design Project</p>
     <h1 style="font-size:42px;margin:12px 0;">{{ project.title }}</h1>
 
@@ -51,11 +50,22 @@
             <div class="placeholder" style="height:200px;">No after photos</div>
             {% endif %}
         </div>
-    </div>
     {% else %}
     <div class="placeholder" style="margin-top:32px;">No photos uploaded for this project.</div>
     {% endif %}
 </div>
+{% if similar %}
+<section class="section demo-subsection">
+    <p class="eyebrow">You might also like</p>
+    <h2>Similar Projects</h2>
+    <p class="section-intro">Recommendations are ranked by matching the current project's design and home tags.</p>
+    <div class="project-grid">
+        {% for p in similar %}
+            {{ card(p,covers[p.id],p.id in favorite_ids,request.path,true) }}
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}
 
 
