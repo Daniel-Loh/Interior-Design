@@ -140,6 +140,38 @@ h1 {
     font-size: 13px;
 }
 
+.project-image-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 190px;
+}
+
+.project-image-half {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 8px;
+    background: #dedbd2;
+    color: #777a70;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.project-image-half img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.project-image-half + .project-image-half {
+    border-left: 2px solid #fffdf8;
+    background: #c8c5bc;
+}
+
 .project-info {
     padding: 18px;
 }
