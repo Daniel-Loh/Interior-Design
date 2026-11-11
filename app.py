@@ -1,3 +1,5 @@
+import re
+
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.utils import secure_filename
 import os
@@ -37,9 +39,59 @@ def _save_photo(project_id, field_name, photo_type):
 
 # ── Public routes ─────────────────────────────────────────────────────────────
 
+
+# ── Customer Feature: Filter Interior Design Projects ──────────────
+
+def _explore_context():
+
+    # Get the filters selected by the Customer
+    filters = {
+        name: request.args.get(name, '').strip()
+        for name in (
+            'category',
+            'style',
+            'property_type',
+            'q',
+            'budget_min',
+            'budget_max'
+        )
+    }
+
+    # Retrieve matching projects from the database
+    projects = database.get_customer_projects(filters)
+
+    # Retrieve project cover photos
+    covers = {}
+
+    for project in projects:
+        photos = database.get_photos(project['id'])
+
+        cover = next(
+            (photo for photo in photos
+             if photo['photo_type'] == 'AFTER'),
+            photos[0] if photos else None
+        )
+
+        covers[project['id']] = cover
+
+    # Send the project data to Main.html
+    return {
+        'projects': projects,
+        'filters': filters,
+        'options': database.get_filter_options(),
+        'covers': covers,
+        'result_count': len(projects)
+    }
+
+
+
 @app.route('/')
 def home():
-    return render_template('sites/Main.html')
+    return render_template(
+        'sites/Main.html',
+        **_explore_context()
+    )
+
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -78,25 +130,169 @@ def signup():
     return render_template('sites/SignUp.html')
 
 
+
 @app.route('/Projects')
 def projects():
-    return render_template('sites/Main.html')
+    return render_template(
+        'sites/Main.html',
+        **_explore_context()
+    )
+
+
 
 
 @app.route('/About')
 def about():
-    return render_template('sites/Main.html')
+    return redirect(url_for('home') + '#about')
+
+
 
 
 @app.route('/idp/<int:project_id>')
 def idp_view(project_id):
+
     project = database.get_project(project_id)
+
     if not project or not project['is_visible']:
         return render_template('sites/404.html'), 404
+
+    # Existing photo functionality
     photos = database.get_photos(project_id)
-    before = [p for p in photos if p['photo_type'] == 'BEFORE']
-    after  = [p for p in photos if p['photo_type'] == 'AFTER']
-    return render_template('sites/idp_view.html', project=project, before=before, after=after)
+
+    before = [
+        p for p in photos
+        if p['photo_type'] == 'BEFORE'
+    ]
+
+    after = [
+        p for p in photos
+        if p['photo_type'] == 'AFTER'
+    ]
+
+    # CUSTOMER FEATURE US-C-04
+    similar = database.get_customer_similar_projects(project_id)
+
+    similar_covers = {}
+
+    for item in similar:
+        item_photos = database.get_photos(item['id'])
+
+        cover = next(
+            (p for p in item_photos if p['photo_type'] == 'AFTER'),
+            item_photos[0] if item_photos else None
+        )
+
+        similar_covers[item['id']] = cover
+
+    return render_template(
+        'sites/idp_view.html',
+        project=project,
+        before=before,
+        after=after,
+        similar=similar,
+        similar_covers=similar_covers
+    )
+
+
+# ── CUSTOMER FEATURE US-C-02: BROWSE DESIGNER PORTFOLIO ──
+
+@app.route('/customer/portfolio')
+def customer_portfolio():
+
+    # Retrieve Interior Designer company information
+    company = database.get_company()
+
+    # Retrieve publicly visible projects
+    projects = database.get_visible_projects()
+
+    # Retrieve project cover images
+    covers = {}
+
+    for project in projects:
+        photos = database.get_photos(project['id'])
+
+        cover = next(
+            (photo for photo in photos
+             if photo['photo_type'] == 'AFTER'),
+            photos[0] if photos else None
+        )
+
+        covers[project['id']] = cover
+
+    return render_template(
+        'sites/customer_portfolio.html',
+        company=company,
+        projects=projects,
+        covers=covers
+    )
+
+
+# ── CUSTOMER FEATURE US-C-03: CONTACT DESIGNER ──
+
+@app.route('/customer/contact/<int:project_id>', methods=['GET', 'POST'])
+def customer_contact(project_id):
+
+    # Retrieve the selected project
+    project = database.get_project(project_id)
+
+    # Check whether the project exists and is visible
+    if not project or not project['is_visible']:
+        return render_template('sites/404.html'), 404
+
+    error = None
+
+    # Keep entered values if validation fails
+    form = {
+        'name': '',
+        'email': '',
+        'message': ''
+    }
+
+    if request.method == 'POST':
+
+        # Retrieve Customer information
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        message = request.form.get('message', '').strip()
+
+        form = {
+            'name': name,
+            'email': email,
+            'message': message
+        }
+
+        # Validate the form
+        if not name or not email or not message:
+            error = 'Please fill in all required fields.'
+
+        elif len(name) > 100 or len(email) > 254 or len(message) > 2000:
+            error = 'One or more fields exceed the allowed length.'
+
+        elif not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
+            error = 'Please enter a valid email address.'
+
+        else:
+            # Save enquiry into database
+            database.save_customer_enquiry(
+                project_id=project_id,
+                customer_name=name,
+                customer_email=email,
+                message=message
+            )
+
+            # Redirect after successful submission
+            return redirect(
+                url_for('customer_contact', project_id=project_id, sent=1)
+            )
+
+    return render_template(
+        'sites/customer_contact.html',
+        project=project,
+        error=error,
+        form=form,
+        submitted=request.args.get('sent') == '1'
+    )
+
 
 
 # ── Designer routes ───────────────────────────────────────────────────────────

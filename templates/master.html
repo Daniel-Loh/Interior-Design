@@ -20,7 +20,15 @@
                 <a href="/#designers">Find a designer</a>
                 <a href="/#projects">ID projects</a>
                 <a href="/#about">About</a>
-                <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
+                
+                <!-- Customer Navigation -->
+                
+
+                {% if session.get('role') == 'customer' %}
+                    <a class="sign-in-link" href="{{ url_for('logout') }}">Sign out</a>
+                {% else %}
+                    <a class="sign-in-link" href="{{ url_for('login') }}">Sign in</a>
+                {% endif %}
             {% endif %}
         </nav>
     </header>
