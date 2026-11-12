@@ -122,52 +122,6 @@ def _explore_context():
                 result_count=len(projects))
 
 
-
-# ── Customer Feature: Filter Interior Design Projects ──────────────
-
-def _explore_context():
-
-    # Get the filters selected by the Customer
-    filters = {
-        name: request.args.get(name, '').strip()
-        for name in (
-            'category',
-            'style',
-            'property_type',
-            'q',
-            'budget_min',
-            'budget_max'
-        )
-    }
-
-    # Retrieve matching projects from the database
-    projects = database.get_customer_projects(filters)
-
-    # Retrieve project cover photos
-    covers = {}
-
-    for project in projects:
-        photos = database.get_photos(project['id'])
-
-        cover = next(
-            (photo for photo in photos
-             if photo['photo_type'] == 'AFTER'),
-            photos[0] if photos else None
-        )
-
-        covers[project['id']] = cover
-
-    # Send the project data to Main.html
-    return {
-        'projects': projects,
-        'filters': filters,
-        'options': database.get_filter_options(),
-        'covers': covers,
-        'result_count': len(projects)
-    }
-
-
-
 @app.route('/')
 def home():
     return render_template('sites/Main.html', **_explore_context())
