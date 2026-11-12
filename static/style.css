@@ -1027,6 +1027,29 @@ textarea.form-control {
 .demo-subsection { margin-top: 55px; }
 .demo-top-gap { margin-top: 28px; }
 .demo-detail-photo { display: block; width: 100%; height: auto; max-height: 500px; object-fit: contain; margin-bottom: 14px; }
+.project-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 28px 0 8px;
+}
+.project-pagination a,
+.project-pagination span {
+    min-width: 34px;
+    padding: 9px 11px;
+    border: 1px solid var(--pending-line);
+    background: var(--pending-paper);
+    color: var(--pending-ink);
+    font-size: 13px;
+    text-align: center;
+}
+.project-pagination a:hover,
+.project-pagination .current {
+    border-color: var(--pending-sage);
+    background: var(--pending-sage);
+    color: #fffdf8;
+}
 
 /* Reports and manager dashboard share original neutral backgrounds/borders. */
 .demo-report-form {

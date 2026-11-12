@@ -60,8 +60,8 @@
     {% if not projects %}
         <div class="placeholder">No projects yet. Click "+ New Project" to get started.</div>
     {% else %}
-        <div class="idp-list">
-            {% for p in projects %}
+        <div class="idp-list" id="project-list">
+            {% for p in page_projects %}
             <div class="idp-item">
                 <div class="idp-item-info">
                     <span class="idp-title">{{ p.title }}</span>
@@ -92,6 +92,7 @@
             </div>
             {% endfor %}
         </div>
+        {% include "sites/_pagination.html" %}
     {% endif %}
 </div>
 {% endblock %}

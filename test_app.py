@@ -73,6 +73,17 @@ class TestDatabaseFunctions(unittest.TestCase):
         titles = [p['title'] for p in projects]
         self.assertNotIn('Hidden Project', titles)
 
+    def test_projects_can_be_filtered_by_designer_account(self):
+        """Designer project lists only include projects owned by that account."""
+        first_id = database.create_project('First Designer Project', 'A sample project',
+                                           'Residential', 'Modern', 'HDB 4-Room',
+                                           actor='designer:first@example.com')
+        database.create_project('Second Designer Project', 'A sample project',
+                                'Residential', 'Modern', 'HDB 4-Room',
+                                actor='designer:second@example.com')
+        projects = database.get_all_projects('designer:first@example.com')
+        self.assertEqual([project['id'] for project in projects], [first_id])
+
     def test_toggle_featured_sets_flag(self):
         """Toggling featured on a project sets is_featured to 1."""
         project_id = self._make_project()
@@ -100,6 +111,13 @@ class TestDatabaseFunctions(unittest.TestCase):
         projects = database.get_visible_projects({'style': 'Modern'})
         for p in projects:
             self.assertEqual(p['style'], 'Modern')
+
+    def test_company_profiles_are_separate_by_designer_account(self):
+        """Each designer account has an independent company profile."""
+        database.save_company('designer:one@example.com', 'Designer One', 'First profile', 'one@example.com')
+        database.save_company('designer:two@example.com', 'Designer Two', 'Second profile', 'two@example.com')
+        self.assertEqual(database.get_company('designer:one@example.com')['name'], 'Designer One')
+        self.assertEqual(database.get_company('designer:two@example.com')['name'], 'Designer Two')
 
 
 class TestFlaskRoutes(unittest.TestCase):
@@ -131,6 +149,22 @@ class TestFlaskRoutes(unittest.TestCase):
         """Requesting a project that does not exist returns HTTP 404."""
         response = self.client.get('/idp/9999')
         self.assertEqual(response.status_code, 404)
+
+    def test_project_page_shows_assigned_designer(self):
+        """A project page displays the company profile linked to its owner."""
+        account_key = 'designer:profile@example.com'
+        database.save_company(account_key, 'Profile Studio', 'Studio description', 'profile@example.com')
+        project_id = database.create_project(
+            title='Profile Project',
+            description='A profile project',
+            category='Residential',
+            style='Modern',
+            property_type='HDB 4-Room',
+            actor=account_key,
+        )
+        response = self.client.get(f'/idp/{project_id}')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b'Profile Studio', response.data)
 
     def test_designer_dashboard_loads(self):
         """Designer dashboard page returns HTTP 200."""

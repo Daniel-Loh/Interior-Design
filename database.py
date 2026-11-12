@@ -14,6 +14,7 @@ TAG_FIELDS = ('category', 'style', 'property_type', 'room_count', 'apartment_typ
 TAG_WEIGHTS = {'category': 1, 'style': 3, 'property_type': 2, 'room_count': 2, 'apartment_type': 3}
 ROOM_OPTIONS = ('3 room', '4 room', '5 room', '6 room')
 APARTMENT_OPTIONS = ('Studio apartment', 'Penthouse', 'Duplex', 'Standard apartment')
+DEFAULT_DESIGNER_ACCOUNT = 'designer:demo-designer'
 
 
 def now_sg():
@@ -52,7 +53,8 @@ def init_db():
             );
 
             CREATE TABLE IF NOT EXISTS company_profile (
-                id INTEGER PRIMARY KEY DEFAULT 1,
+                id INTEGER PRIMARY KEY,
+                account_key TEXT NOT NULL DEFAULT 'designer:demo-designer',
                 name TEXT DEFAULT '', description TEXT DEFAULT '', contact_info TEXT DEFAULT '', weights_views INTEGER DEFAULT 0.5, weights_short INTEGER DEFAULT 0.5
             );
             INSERT OR IGNORE INTO company_profile (id) VALUES (1);
@@ -110,6 +112,10 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_activity_date ON designer_activity(occurred_at);
         ''')
         existing = {c['name'] for c in conn.execute('PRAGMA table_info(interior_design_project)')}
+        company_columns = {c['name'] for c in conn.execute('PRAGMA table_info(company_profile)')}
+        if 'account_key' not in company_columns:
+            conn.execute("ALTER TABLE company_profile ADD COLUMN account_key TEXT NOT NULL DEFAULT 'designer:demo-designer'")
+        conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_company_profile_account ON company_profile(account_key)')
         for column in ('room_count', 'apartment_type'):
             if column not in existing:
                 conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
@@ -149,10 +155,14 @@ def _seed_demo_projects(conn):
           idx,(title,desc,category,style,prop,rooms,apartment, viewership, shortlist) in enumerate(samples)])
 
 
-def get_company():
+def get_company(account_key=DEFAULT_DESIGNER_ACCOUNT):
     with get_db() as conn:
-        row = conn.execute('SELECT * FROM company_profile WHERE id=1').fetchone()
-        return dict(row) if row else {}
+        row = conn.execute('SELECT * FROM company_profile WHERE account_key=?', (account_key,)).fetchone()
+        if row:
+            return dict(row)
+        conn.execute('INSERT INTO company_profile (account_key) VALUES (?)', (account_key,))
+        row = conn.execute('SELECT * FROM company_profile WHERE account_key=?', (account_key,)).fetchone()
+        return dict(row)
 
 
 def get_all_companies():
@@ -160,27 +170,45 @@ def get_all_companies():
         return [dict(r) for r in conn.execute('SELECT * FROM company_profile ORDER BY id')]
 
 
-def save_weights(views, short):
+def save_weights(account_key, views, short):
     with get_db() as conn:
-        conn.execute('UPDATE company_profile SET weights_views=?, weights_short=? WHERE id=1',
-                     (views, short))
+        conn.execute('''INSERT INTO company_profile (account_key, weights_views, weights_short)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(account_key) DO UPDATE SET
+                        weights_views=excluded.weights_views,
+                        weights_short=excluded.weights_short''',
+                     (account_key, views, short))
 
 
-def save_company(name, description, contact_info):
+def save_company(account_key, name, description, contact_info):
     with get_db() as conn:
-        conn.execute('UPDATE company_profile SET name=?, description=?, contact_info=? WHERE id=1',
-                     (name,description,contact_info))
+        conn.execute('''INSERT INTO company_profile (account_key, name, description, contact_info)
+                        VALUES (?, ?, ?, ?)
+                        ON CONFLICT(account_key) DO UPDATE SET
+                        name=excluded.name,
+                        description=excluded.description,
+                        contact_info=excluded.contact_info''',
+                     (account_key, name, description, contact_info))
 
 
-def get_all_projects():
+def get_all_projects(account_key=None):
     with get_db() as conn:
-        return [dict(r) for r in conn.execute('SELECT * FROM interior_design_project ORDER BY is_featured DESC,id DESC')]
+        query = 'SELECT * FROM interior_design_project'
+        values = []
+        if account_key:
+            query += ' WHERE account_key=?'
+            values.append(account_key)
+        query += ' ORDER BY is_featured DESC,id DESC'
+        return [dict(r) for r in conn.execute(query, values)]
 
 
-def get_visible_projects(filters=None):
+def get_visible_projects(filters=None, account_key=None):
     filters = filters or {}
     query = 'SELECT * FROM interior_design_project WHERE is_visible=1'
     values = []
+    if account_key:
+        query += ' AND account_key=?'
+        values.append(account_key)
     for field in TAG_FIELDS:
         value = (filters.get(field) or '').strip()
         if value:
@@ -572,13 +600,13 @@ def get_customer_similar_projects(project_id, limit=4):
 # ─── Service classes (OOP interface over the data layer above) ─────────────
 
 class CompanyService:
-    """Manages the single company profile record."""
+    """Manages company profiles belonging to designer accounts."""
 
-    def get(self):
-        return get_company()
+    def get(self, account_key=DEFAULT_DESIGNER_ACCOUNT):
+        return get_company(account_key)
 
-    def save(self, name, description, contact_info):
-        return save_company(name, description, contact_info)
+    def save(self, account_key, name, description, contact_info):
+        return save_company(account_key, name, description, contact_info)
 
 
 class ProjectService:
@@ -587,11 +615,11 @@ class ProjectService:
     def get(self, project_id):
         return get_project(project_id)
 
-    def get_all(self):
-        return get_all_projects()
+    def get_all(self, account_key=None):
+        return get_all_projects(account_key)
 
-    def get_visible(self, filters=None):
-        return get_visible_projects(filters)
+    def get_visible(self, filters=None, account_key=None):
+        return get_visible_projects(filters, account_key)
 
     def get_similar(self, tags, excluded_ids=None, limit=4):
         return get_similar_projects(tags, excluded_ids, limit)
