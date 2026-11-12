@@ -124,7 +124,7 @@ def _covers(projects):
     for project in projects:
         photos = _photo_svc.get_all(project['id'])
         # Prefer the finished design photo for listing cards.
-        cover = next((p for p in photos if p['photo_type'] == 'AFTER'), None)
+        cover = next((p for p in photos if p['photo_type'] == 'after'), None)
         result[project['id']] = cover or (photos[0] if photos else None)
     return result
 
@@ -171,7 +171,7 @@ def _explore_context():
 
         cover = next(
             (photo for photo in photos
-             if photo['photo_type'] == 'AFTER'),
+             if photo['photo_type'] == 'after'),
             photos[0] if photos else None
         )
 
@@ -291,13 +291,13 @@ def idp_view(project_id):
         project.get('account_key') or database.DEFAULT_DESIGNER_ACCOUNT
     )
     photos = _photo_svc.get_all(project_id)
-    before = [p for p in photos if p['photo_type'] == 'BEFORE']
-    after = [p for p in photos if p['photo_type'] == 'AFTER']
+    before = [p for p in photos if p['photo_type'] == 'before']
+    after = [p for p in photos if p['photo_type'] == 'after']
     similar = database.get_customer_similar_projects(project_id)
     covers = {}
     for item in similar:
         item_photos = _photo_svc.get_all(item['id'])
-        cover = next((p for p in item_photos if p['photo_type'] == 'AFTER'),
+        cover = next((p for p in item_photos if p['photo_type'] == 'after'),
                      item_photos[0] if item_photos else None)
         covers[item['id']] = cover
     return render_template('sites/idp_view.html', project=project, before=before, after=after,
@@ -316,7 +316,7 @@ def customer_portfolio():
     covers = {}
     for project in projects:
         photos = _photo_svc.get_all(project['id'])
-        cover = next((p for p in photos if p['photo_type'] == 'AFTER'),
+        cover = next((p for p in photos if p['photo_type'] == 'after'),
                      photos[0] if photos else None)
         covers[project['id']] = cover
 
@@ -592,8 +592,8 @@ def idp_create():
         category=request.form.get('category',''),style=request.form.get('style',''),
         property_type=request.form.get('property_type',''),room_count=request.form.get('room_count',''),
         apartment_type=request.form.get('apartment_type',''),actor=designer_actor())
-    _save_photo(project_id,'before_photo','BEFORE')
-    _save_photo(project_id,'after_photo','AFTER')
+    _save_photo(project_id,'before_photo','before')
+    _save_photo(project_id,'after_photo','after')
     flash('Project created.')
     return redirect(url_for('idp_edit',project_id=project_id))
 
@@ -631,8 +631,8 @@ def idp_edit(project_id):
             return render_template('sites/idp_edit.html', project=draft,
                 photos=_photo_svc.get_all(project_id),
                 room_options=database.ROOM_OPTIONS, apartment_options=database.APARTMENT_OPTIONS)
-        _save_photo(project_id,'before_photo','BEFORE')
-        _save_photo(project_id,'after_photo','AFTER')
+        _save_photo(project_id,'before_photo','before')
+        _save_photo(project_id,'after_photo','after')
         flash('Project saved.')
         return redirect(url_for('idp_edit',project_id=project_id))
     return render_template('sites/idp_edit.html',project=project,

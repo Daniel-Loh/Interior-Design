@@ -70,7 +70,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS project_photo (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 project_id INTEGER NOT NULL, image_url TEXT NOT NULL,
-                photo_type TEXT NOT NULL CHECK(photo_type IN ('BEFORE', 'AFTER')),
+                photo_type TEXT NOT NULL CHECK(photo_type IN ('before', 'after')),
                 FOREIGN KEY(project_id) REFERENCES interior_design_project(id)
             );
 
@@ -315,6 +315,9 @@ def get_photo(photo_id):
 
 
 def add_photo(project_id,image_url,photo_type):
+    photo_type = photo_type.lower()
+    if photo_type not in ('before', 'after'):
+        raise ValueError('photo_type must be before or after')
     with get_db() as conn:
         conn.execute('INSERT INTO project_photo (project_id,image_url,photo_type) VALUES (?,?,?)',
                      (project_id,image_url,photo_type))
