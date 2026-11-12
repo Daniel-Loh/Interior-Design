@@ -270,15 +270,14 @@ def idp_view(project_id):
     before = [p for p in photos if p['photo_type'] == 'BEFORE']
     after = [p for p in photos if p['photo_type'] == 'AFTER']
     similar = database.get_customer_similar_projects(project_id)
-    similar_covers = {}
+    covers = {}
     for item in similar:
         item_photos = _photo_svc.get_all(item['id'])
         cover = next((p for p in item_photos if p['photo_type'] == 'AFTER'),
                      item_photos[0] if item_photos else None)
-        similar_covers[item['id']] = cover
-
+        covers[item['id']] = cover
     return render_template('sites/idp_view.html', project=project, before=before, after=after,
-                           similar=similar, similar_covers=similar_covers,
+                           similar=similar, covers=covers, similar_covers=covers,
                            favorite_ids=database.get_favorite_ids(current_account()))
 
 
@@ -289,7 +288,6 @@ def customer_portfolio():
     company = _company_svc.get()
     projects = _project_svc.get_visible()
     covers = {}
-
     for project in projects:
         photos = _photo_svc.get_all(project['id'])
         cover = next((p for p in photos if p['photo_type'] == 'AFTER'),
@@ -305,19 +303,15 @@ def customer_portfolio():
 @app.route('/customer/contact/<int:project_id>', methods=['GET', 'POST'])
 def customer_contact(project_id):
     project = _project_svc.get(project_id)
-    # Check whether the project exists and is visible
     if not project or not project['is_visible']:
         return render_template('sites/404.html'), 404
     error = None
     form = {'name': '', 'email': '', 'message': ''}
-
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
         message = request.form.get('message', '').strip()
-
         form = {'name': name, 'email': email, 'message': message}
-
         if not name or not email or not message:
             error = 'Please fill in all required fields.'
         elif len(name) > 100 or len(email) > 254 or len(message) > 2000:
@@ -325,7 +319,6 @@ def customer_contact(project_id):
         elif not re.fullmatch(r'[^@\s]+@[^@\s]+\.[^@\s]+', email):
             error = 'Please enter a valid email address.'
         else:
-            # Save enquiry into database
             database.save_customer_enquiry(project_id=project_id, customer_name=name,
                                            customer_email=email, message=message)
             return redirect(url_for('customer_contact', project_id=project_id, sent=1))
@@ -536,7 +529,9 @@ def company_edit():
     return render_template('sites/company_edit.html',company=_company_svc.get())
 
 
+# InteriorDesigner actions are implemented as Flask routes in app.py
 @app.route('/designer/company/preview')
+@designer_only
 def company_preview():
     try:
         company=_company_svc.get()
@@ -556,7 +551,7 @@ def idp_new():
 
 @app.route('/designer/idp/create',methods=['POST'])
 def idp_create():
-    project_id=database.create_project(
+    project_id=_project_svc.create(
         title=request.form.get('title','Untitled'),description=request.form.get('description',''),
         category=request.form.get('category',''),style=request.form.get('style',''),
         property_type=request.form.get('property_type',''),room_count=request.form.get('room_count',''),

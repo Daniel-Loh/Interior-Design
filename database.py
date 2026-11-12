@@ -6,6 +6,8 @@ from pathlib import Path
 from random import randint
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from werkzeug.security import generate_password_hash, check_password_hash
+
 DB_PATH = Path(__file__).resolve().parent / 'interior_design.db'
 SGT = timezone(timedelta(hours=8))  # Singapore has no daylight saving time
 TAG_FIELDS = ('category', 'style', 'property_type', 'room_count', 'apartment_type')
@@ -83,7 +85,6 @@ def init_db():
                 FOREIGN KEY (tag_id) REFERENCES tags(id)
             );
 
-
             CREATE TABLE IF NOT EXISTS demo_users (
                 account_key TEXT PRIMARY KEY, email TEXT NOT NULL DEFAULT '',
                 role TEXT NOT NULL, created_at TEXT NOT NULL, last_login_at TEXT NOT NULL,
@@ -112,7 +113,10 @@ def init_db():
         for column in ('room_count', 'apartment_type'):
             if column not in existing:
                 conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
-        for column in ('created_at', 'updated_at', 'viewership_count', 'shortlist_count'):
+        for column in ('created_at', 'updated_at'):
+            if column not in existing:
+                conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} TEXT NOT NULL DEFAULT ''")
+        for column in ('viewership_count', 'shortlist_count'):
             if column not in existing:
                 conn.execute(f"ALTER TABLE interior_design_project ADD COLUMN {column} INTEGER NOT NULL DEFAULT 0")
         if 'account_key' not in existing:
@@ -259,7 +263,7 @@ def toggle_featured(project_id,actor='demo-designer'):
         if project:
             record_activity(conn,'Featured project' if project['is_featured'] else 'Unfeatured project',project_id,project['title'],actor)
         return project['is_featured'] if project else None
-    
+
 
 def toggle_visibility(project_id,actor='demo-designer'):
     with get_db() as conn:
@@ -269,7 +273,7 @@ def toggle_visibility(project_id,actor='demo-designer'):
         if project:
             record_activity(conn,'Unhid project' if project['is_visible'] else 'Hid project',project_id,project['title'],actor)
         return project['is_visible'] if project else None
-    
+
 
 def get_photos(project_id):
     with get_db() as conn:
@@ -495,7 +499,6 @@ def get_customer_projects(filters=None):
         values.extend([f"%{keyword}%", f"%{keyword}%"])
     budget_min = (filters.get('budget_min') or '').strip()
     budget_max = (filters.get('budget_max') or '').strip()
-
     try:
         minimum = float(budget_min) if budget_min else None
         maximum = float(budget_max) if budget_max else None
@@ -514,16 +517,12 @@ def get_customer_projects(filters=None):
             values.append(maximum)
     except ValueError:
         return []
-
     query += " ORDER BY is_featured DESC, id DESC"
     conn = get_db()
     rows = conn.execute(query, values).fetchall()
-
     conn.close()
     return [dict(row) for row in rows]
 
-
-# ── CUSTOMER FEATURE US-C-03: SAVE CUSTOMER ENQUIRY ──
 
 def save_customer_enquiry(project_id, customer_name, customer_email, message):
     """Save a Customer's enquiry about an Interior Design Project."""
@@ -539,23 +538,17 @@ def save_customer_enquiry(project_id, customer_name, customer_email, message):
         )
         conn.commit()
         return cursor.lastrowid
-
     finally:
         conn.close()
 
 
-# ── CUSTOMER FEATURE US-C-04: SIMILAR PROJECTS ──
-
 def get_customer_similar_projects(project_id, limit=4):
     """Find similar visible Interior Design Projects."""
     current_project = get_project(project_id)
-
     if not current_project or not current_project['is_visible']:
         return []
     projects = get_visible_projects()
-
     similar_projects = []
-
     for project in projects:
         if project['id'] == project_id:
             continue
@@ -572,8 +565,9 @@ def get_customer_similar_projects(project_id, limit=4):
         if score > 0:
             project['similarity_score'] = score
             similar_projects.append(project)
-        similar_projects.sort(key=lambda p: (-p['similarity_score'], -p['is_featured'], -p['id']))
+    similar_projects.sort(key=lambda p: (-p['similarity_score'], -p['is_featured'], -p['id']))
     return similar_projects[:limit]
+
 
 # ─── Service classes (OOP interface over the data layer above) ─────────────
 
