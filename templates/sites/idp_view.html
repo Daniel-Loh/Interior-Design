@@ -13,6 +13,16 @@
         {% endfor %}
     </div>
 
+    <div class="idp-designer">
+        <p class="eyebrow">Designed by</p>
+        <h2>{{ designer.name or 'Interior Designer' }}</h2>
+        {% if designer.description %}
+        <p>{{ designer.description }}</p>
+        {% endif %}
+        {% if designer.contact_info %}
+        <p class="demo-muted">{{ designer.contact_info }}</p>
+        {% endif %}
+    </div>
 
     {% if project.description %}
     <p class="intro">{{ project.description }}</p>

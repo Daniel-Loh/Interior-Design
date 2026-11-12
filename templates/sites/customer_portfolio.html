@@ -19,7 +19,7 @@
 
     <p>Explore the designer's renovation projects.</p>
 
-    <div class="project-grid">
+    <div class="project-grid" id="project-list">
 
         {% for project in projects %}
 
@@ -64,6 +64,7 @@
         {% endfor %}
 
     </div>
+    {% include "sites/_pagination.html" %}
 
 </section>
 

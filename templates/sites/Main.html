@@ -114,11 +114,12 @@
     <p class="demo-results-count">{{ result_count }} matching project{{ '' if result_count==1 else 's' }}</p>
 
     {% if projects %}
-        <div class="project-grid">
+        <div class="project-grid" id="project-list">
             {% for p in projects %}
                 {{ card(p,covers[p.id],p.id in favorite_ids,request.full_path) }}
             {% endfor %}
         </div>
+        {% include "sites/_pagination.html" %}
     {% else %}
         <div class="placeholder">No projects match these filters. Try clearing one or more tags.</div>
     {% endif %}

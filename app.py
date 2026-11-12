@@ -26,12 +26,32 @@ app.permanent_session_lifetime = timedelta(days=30)
 UPLOAD_FOLDER = BASE_DIR / 'static' / 'uploads' / 'projects'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 MAX_FILE_SIZE = 5 * 1024 * 1024
+PROJECTS_PER_PAGE = 10
 UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 # The database is created/migrated at startup, including when using `flask run`.
 database.init_db()
 _company_svc = database.CompanyService()
 _project_svc = database.ProjectService()
 _photo_svc   = database.PhotoService()
+
+
+def _paginate_projects(projects):
+    try:
+        page = max(1, int(request.args.get('page', '1')))
+    except ValueError:
+        page = 1
+    total = len(projects)
+    total_pages = max(1, (total + PROJECTS_PER_PAGE - 1) // PROJECTS_PER_PAGE)
+    page = min(page, total_pages)
+    start = (page - 1) * PROJECTS_PER_PAGE
+    query = {key: value for key, value in request.args.items() if key != 'page'}
+    return {
+        'items': projects[start:start + PROJECTS_PER_PAGE],
+        'page': page,
+        'total_pages': total_pages,
+        'total': total,
+        'query': query,
+    }
 
 
 def current_account():
@@ -104,7 +124,7 @@ def _covers(projects):
     for project in projects:
         photos = _photo_svc.get_all(project['id'])
         # Prefer the finished design photo for listing cards.
-        cover = next((p for p in photos if p['photo_type'] == 'AFTER'), None)
+        cover = next((p for p in photos if p['photo_type'] == 'after'), None)
         result[project['id']] = cover or (photos[0] if photos else None)
     return result
 
@@ -120,6 +140,53 @@ def _explore_context():
                 options=database.get_filter_options(),
                 covers=_covers(projects+similar), favorite_ids=database.get_favorite_ids(account),
                 result_count=len(projects))
+
+# ── Customer Feature: Filter Interior Design Projects ──────────────
+
+def _explore_context():
+
+    # Get the filters selected by the Customer
+    filters = {
+        name: request.args.get(name, '').strip()
+        for name in (
+            'category',
+            'style',
+            'property_type',
+            'q',
+            'budget_min',
+            'budget_max'
+        )
+    }
+
+    # Retrieve matching projects from the database
+    projects = database.get_customer_projects(filters)
+    pagination = _paginate_projects(projects)
+    projects = pagination['items']
+
+    # Retrieve project cover photos
+    covers = {}
+
+    for project in projects:
+        photos = database.get_photos(project['id'])
+
+        cover = next(
+            (photo for photo in photos
+             if photo['photo_type'] == 'after'),
+            photos[0] if photos else None
+        )
+
+        covers[project['id']] = cover
+
+    # Send the project data to Main.html
+    return {
+        'projects': projects,
+        'filters': filters,
+        'options': database.get_filter_options(),
+        'covers': covers,
+        'result_count': pagination['total'],
+        'pagination': pagination,
+    }
+
 
 
 @app.route('/')
@@ -220,36 +287,41 @@ def idp_view(project_id):
     project = _project_svc.get(project_id)
     if not project or not project['is_visible']:
         return render_template('sites/404.html'), 404
+    designer = _company_svc.get(
+        project.get('account_key') or database.DEFAULT_DESIGNER_ACCOUNT
+    )
     photos = _photo_svc.get_all(project_id)
-    before = [p for p in photos if p['photo_type'] == 'BEFORE']
-    after = [p for p in photos if p['photo_type'] == 'AFTER']
+    before = [p for p in photos if p['photo_type'] == 'before']
+    after = [p for p in photos if p['photo_type'] == 'after']
     similar = database.get_customer_similar_projects(project_id)
     covers = {}
     for item in similar:
         item_photos = _photo_svc.get_all(item['id'])
-        cover = next((p for p in item_photos if p['photo_type'] == 'AFTER'),
+        cover = next((p for p in item_photos if p['photo_type'] == 'after'),
                      item_photos[0] if item_photos else None)
         covers[item['id']] = cover
     return render_template('sites/idp_view.html', project=project, before=before, after=after,
                            similar=similar, covers=covers, similar_covers=covers,
-                           favorite_ids=database.get_favorite_ids(current_account()))
+                           favorite_ids=database.get_favorite_ids(current_account()),
+                           designer=designer)
 
 
 # ── CUSTOMER FEATURE US-C-02: BROWSE DESIGNER PORTFOLIO ──
 
 @app.route('/customer/portfolio')
 def customer_portfolio():
-    company = _company_svc.get()
-    projects = _project_svc.get_visible()
+    company = _company_svc.get(designer_actor())
+    pagination = _paginate_projects(_project_svc.get_visible())
+    projects = pagination['items']
     covers = {}
     for project in projects:
         photos = _photo_svc.get_all(project['id'])
-        cover = next((p for p in photos if p['photo_type'] == 'AFTER'),
+        cover = next((p for p in photos if p['photo_type'] == 'after'),
                      photos[0] if photos else None)
         covers[project['id']] = cover
 
     return render_template('sites/customer_portfolio.html', company=company,
-                           projects=projects, covers=covers)
+                           projects=projects, covers=covers, pagination=pagination)
 
 
 # ── CUSTOMER FEATURE US-C-03: CONTACT DESIGNER ──
@@ -459,28 +531,35 @@ def download_report_pdf():
 # ─── Designer project routes (kept compatible with the original demo) ─────
 @app.route('/designer/dashboard')
 def designer_dashboard():
-    return render_template('sites/designer_dashboard.html',projects=_project_svc.get_all(), company=database.get_all_companies())
+    all_projects = _project_svc.get_all(designer_actor())
+    pagination = _paginate_projects(all_projects)
+    return render_template('sites/designer_dashboard.html', projects=all_projects,
+                           page_projects=pagination['items'], pagination=pagination,
+                           company=_company_svc.get(designer_actor()))
 
 @app.route('/designer/EditCounters', methods=['GET', 'POST'])
 def update_weightages():
     if request.method == 'POST':
         views = request.form.get('views', type=int) / 100
         short = request.form.get('short', type=int) / 100
-        database.save_weights(views=views,
+        database.save_weights(account_key=designer_actor(), views=views,
                               short=short)
         flash('Counters weightage saved.')
         return redirect(url_for('update_weightages'))
-    return render_template('sites/edit_counters.html', company=database.get_company())
+    return render_template('sites/edit_counters.html',
+                           company=database.get_company(designer_actor()))
 
 @app.route('/designer/company',methods=['GET','POST'])
 def company_edit():
     if request.method == 'POST':
-        _company_svc.save(name=request.form.get('name',''),
+        _company_svc.save(account_key=designer_actor(),
+                          name=request.form.get('name',''),
                           description=request.form.get('description',''),
                           contact_info=request.form.get('contact_info',''))
         flash('Company profile saved.')
         return redirect(url_for('company_edit'))
-    return render_template('sites/company_edit.html',company=_company_svc.get())
+    return render_template('sites/company_edit.html',
+                           company=_company_svc.get(designer_actor()))
 
 
 # InteriorDesigner actions are implemented as Flask routes in app.py
@@ -488,13 +567,16 @@ def company_edit():
 @designer_only
 def company_preview():
     try:
-        company=_company_svc.get()
-        projects=_project_svc.get_visible()
+        company=_company_svc.get(designer_actor())
+        all_projects=_project_svc.get_visible(account_key=designer_actor())
+        pagination=_paginate_projects(all_projects)
+        projects=pagination['items']
         cover={p['id']:_photo_svc.get_all(p['id'])[:1] for p in projects}
     except Exception:
         flash('Could not load company information. Please try again.')
         return redirect(url_for('company_edit'))
-    return render_template('sites/company_preview.html',company=company,projects=projects,cover=cover)
+    return render_template('sites/company_preview.html', company=company,
+                           projects=projects, cover=cover, pagination=pagination)
 
 
 @app.route('/designer/idp/new')
@@ -510,8 +592,8 @@ def idp_create():
         category=request.form.get('category',''),style=request.form.get('style',''),
         property_type=request.form.get('property_type',''),room_count=request.form.get('room_count',''),
         apartment_type=request.form.get('apartment_type',''),actor=designer_actor())
-    _save_photo(project_id,'before_photo','BEFORE')
-    _save_photo(project_id,'after_photo','AFTER')
+    _save_photo(project_id,'before_photo','before')
+    _save_photo(project_id,'after_photo','after')
     flash('Project created.')
     return redirect(url_for('idp_edit',project_id=project_id))
 
@@ -549,8 +631,8 @@ def idp_edit(project_id):
             return render_template('sites/idp_edit.html', project=draft,
                 photos=_photo_svc.get_all(project_id),
                 room_options=database.ROOM_OPTIONS, apartment_options=database.APARTMENT_OPTIONS)
-        _save_photo(project_id,'before_photo','BEFORE')
-        _save_photo(project_id,'after_photo','AFTER')
+        _save_photo(project_id,'before_photo','before')
+        _save_photo(project_id,'after_photo','after')
         flash('Project saved.')
         return redirect(url_for('idp_edit',project_id=project_id))
     return render_template('sites/idp_edit.html',project=project,
