@@ -106,11 +106,12 @@ def _covers(projects):
 
 def _explore_context():
     filters = {name: request.args.get(name, '').strip() for name in (*database.TAG_FIELDS, 'q')}
+    designers = database.get_all_companies()
     projects = _project_svc.get_visible(filters)
     chosen_tags = {name: filters[name] for name in database.TAG_FIELDS if filters[name]}
     similar = database.get_similar_projects(chosen_tags, excluded_ids=[p['id'] for p in projects]) if chosen_tags else []
     account = current_account()
-    return dict(projects=projects, similar=similar, filters=filters,
+    return dict(projects=projects, similar=similar, filters=filters, designers=designers,
                 options=database.get_filter_options(),
                 covers=_covers(projects+similar), favorite_ids=database.get_favorite_ids(account),
                 result_count=len(projects))
@@ -207,7 +208,12 @@ def logout():
 
 @app.route('/Designers')
 def designers():
-    return render_template('sites/Designers.html')
+    return redirect(url_for('home')+"#designers")
+
+@app.route('/designers/<int:designer_id>')
+def designer_view(designer_id):
+    return render_template('sites/404.html')
+
 
 
 @app.route('/SignUp')
@@ -282,6 +288,7 @@ def customer_portfolio():
         cover = next((p for p in photos if p['photo_type'] == 'AFTER'),
                      photos[0] if photos else None)
         covers[project['id']] = cover
+
     return render_template('sites/customer_portfolio.html', company=company,
                            projects=projects, covers=covers)
 
@@ -312,7 +319,6 @@ def customer_contact(project_id):
             return redirect(url_for('customer_contact', project_id=project_id, sent=1))
     return render_template('sites/customer_contact.html', project=project, error=error,
                            form=form, submitted=request.args.get('sent') == '1')
-
 
 # ─── Reporting (demo manager role, local SQLite metrics) ──────────────
 REPORT_PERIODS = ('daily report','weekly report','monthly report')
@@ -438,6 +444,16 @@ def download_report():
 def designer_dashboard():
     return render_template('sites/designer_dashboard.html',projects=_project_svc.get_all())
 
+@app.route('/designer/EditCounters', methods=['GET', 'POST'])
+def update_weightages():
+    if request.method == 'POST':
+        views = request.form.get('views', type=int) / 100
+        short = request.form.get('short', type=int) / 100
+        database.save_weights(views=views,
+                              short=short)
+        flash('Counters weightage saved.')
+        return redirect(url_for('update_weightages'))
+    return render_template('sites/edit_counters.html', company=database.get_company())
 
 @app.route('/designer/company',methods=['GET','POST'])
 def company_edit():
@@ -448,6 +464,7 @@ def company_edit():
         flash('Company profile saved.')
         return redirect(url_for('company_edit'))
     return render_template('sites/company_edit.html',company=_company_svc.get())
+
 
 # InteriorDesigner actions are implemented as Flask routes in app.py
 @app.route('/designer/company/preview')
