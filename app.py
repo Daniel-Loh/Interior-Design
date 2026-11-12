@@ -8,11 +8,7 @@ from functools import wraps
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
-
 from xml.sax.saxutils import escape
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
 
 from flask import (Flask, Response, abort, flash, redirect, render_template,
                    request, session, url_for)
@@ -160,6 +156,8 @@ def _explore_context():
 
     # Retrieve matching projects from the database
     projects = database.get_customer_projects(filters)
+    pagination = _paginate_projects(projects)
+    projects = pagination['items']
 
     # Retrieve project cover photos
     covers = {}
@@ -181,7 +179,8 @@ def _explore_context():
         'filters': filters,
         'options': database.get_filter_options(),
         'covers': covers,
-        'result_count': len(projects)
+        'result_count': pagination['total'],
+        'pagination': pagination,
     }
 
 
@@ -469,6 +468,13 @@ def download_report():
 @app.route('/reports/download/pdf')
 @manager_only
 def download_report_pdf():
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+    except ImportError:
+        abort(503, description='PDF export requires the ReportLab and Pillow packages.')
+
     config = _report_params()
     results = _report_data(config)
     selected = config['section']
