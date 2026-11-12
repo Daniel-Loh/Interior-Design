@@ -459,7 +459,7 @@ def download_report_pdf():
 # ─── Designer project routes (kept compatible with the original demo) ─────
 @app.route('/designer/dashboard')
 def designer_dashboard():
-    return render_template('sites/designer_dashboard.html',projects=_project_svc.get_all())
+    return render_template('sites/designer_dashboard.html',projects=_project_svc.get_all(), company=database.get_all_companies())
 
 @app.route('/designer/EditCounters', methods=['GET', 'POST'])
 def update_weightages():
