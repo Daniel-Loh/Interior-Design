@@ -9,6 +9,11 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+from xml.sax.saxutils import escape
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+
 from flask import (Flask, Response, abort, flash, redirect, render_template,
                    request, session, url_for)
 from werkzeug.utils import secure_filename
@@ -327,7 +332,7 @@ def customer_contact(project_id):
     return render_template('sites/customer_contact.html', project=project, error=error,
                            form=form, submitted=request.args.get('sent') == '1')
 
-# ─── Reporting (demo manager role, local SQLite metrics) ──────────────
+# ─── Reporting (demo manager role, local SQLite metrics) ────
 REPORT_PERIODS = ('daily report','weekly report','monthly report')
 REPORT_SECTIONS = ('all','projects','users','activity')
 
@@ -444,6 +449,64 @@ def download_report():
     filename = f'pending_{selected}_{config["period"].split()[0]}_{config["start_date"]}.csv'
     return Response('\ufeff'+buffer.getvalue(),mimetype='text/csv; charset=utf-8',
                     headers={'Content-Disposition':f'attachment; filename="{filename}"'})
+
+@app.route('/reports/download/pdf')
+@manager_only
+def download_report_pdf():
+    config = _report_params()
+    results = _report_data(config)
+    selected = config['section']
+    normal = getSampleStyleSheet()['Normal']
+    story = []
+
+    def line(text=''):
+        story.append(Paragraph(escape(str(text)), normal) if text else Spacer(1, 12))
+
+    def rows(data):
+        story.append(Table([[Paragraph(escape(str(v)), normal) for v in row] for row in data],
+                           hAlign='LEFT'))
+        line()
+
+    line(f"Pending demo report - {config['period']}")
+    line(f"Report period: {config['start_date']} to {config['end_date']}")
+    line('Data source: Local SQLite demo database')
+    line('Note: Project/user counts are current all-time totals; activity/new users use the selected period')
+    line()
+
+    if selected in ('all', 'projects'):
+        stats = results['projects']
+        line('PROJECT STATISTICS (CURRENT TOTALS)')
+        rows([[label, stats[key]] for key, label in [
+            ('total', 'Total projects'), ('visible', 'Visible projects'),
+            ('hidden', 'Hidden projects'), ('featured', 'Featured projects'),
+            ('photos', 'Project photos'), ('favorites', 'Saved favorites')]])
+        for field, items in stats['breakdown'].items():
+            rows([[field.replace('_', ' ').title(), 'Project count']] +
+                 [[item['label'], item['count']] for item in items])
+
+    if selected in ('all', 'users'):
+        stats = results['users']
+        line('DEMO USER COUNTS (CURRENT TOTALS)')
+        rows([['Total demo users', stats['total']],
+              ['New demo users in selected period', stats['new_in_period']]] +
+             [[role.replace('_', ' ').title(), count] for role, count in stats['roles'].items()])
+
+    if selected in ('all', 'activity'):
+        stats = results['activity']
+        line('DESIGNER ACTIVITY IN SELECTED PERIOD')
+        rows([['Total activity events', stats['total']]] +
+             [[event, count] for event, count in stats['counts'].items()])
+        rows([['Designer demo identity', 'Actions']] +
+             [[actor, count] for actor, count in stats['actors'].items()])
+        rows([['Timestamp (Singapore)', 'Demo identity', 'Activity', 'Project']] +
+             [[e['occurred_at'], e['account_key'], e['event_type'], e['project_title']]
+              for e in stats['events']])
+
+    buffer = io.BytesIO()
+    SimpleDocTemplate(buffer, pagesize=A4).build(story)
+    filename = f'pending_{selected}_{config["period"].split()[0]}_{config["start_date"]}.pdf'
+    return Response(buffer.getvalue(), mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment; filename="{filename}"'})
 
 
 # ─── Designer project routes (kept compatible with the original demo) ─────
