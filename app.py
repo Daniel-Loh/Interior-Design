@@ -259,14 +259,14 @@ def idp_view(project_id):
     before = [p for p in photos if p['photo_type'] == 'BEFORE']
     after = [p for p in photos if p['photo_type'] == 'AFTER']
     similar = database.get_customer_similar_projects(project_id)
-    similar_covers = {}
+    covers = {}
     for item in similar:
         item_photos = _photo_svc.get_all(item['id'])
         cover = next((p for p in item_photos if p['photo_type'] == 'AFTER'),
                      item_photos[0] if item_photos else None)
-        similar_covers[item['id']] = cover
+        covers[item['id']] = cover
     return render_template('sites/idp_view.html', project=project, before=before, after=after,
-                           similar=similar, similar_covers=similar_covers,
+                           similar=similar, covers=covers, similar_covers=covers,
                            favorite_ids=database.get_favorite_ids(current_account()))
 
 
