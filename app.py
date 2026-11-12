@@ -534,7 +534,8 @@ def designer_dashboard():
     all_projects = _project_svc.get_all(designer_actor())
     pagination = _paginate_projects(all_projects)
     return render_template('sites/designer_dashboard.html', projects=all_projects,
-                           page_projects=pagination['items'], pagination=pagination)
+                           page_projects=pagination['items'], pagination=pagination,
+                           company=_company_svc.get(designer_actor()))
 
 @app.route('/designer/EditCounters', methods=['GET', 'POST'])
 def update_weightages():
